@@ -11,13 +11,15 @@ using glm::mat3;
 /* ----------------------------------------------------------------------------*/
 /* GLOBAL VARIABLES                                                            */
 
-const int SCREEN_WIDTH = 200;
-const int SCREEN_HEIGHT = 200;
+const int SCREEN_WIDTH = 250;
+const int SCREEN_HEIGHT = 250;
 SDL_Surface* screen;
 int t;
 float focalLength = SCREEN_HEIGHT;
 vec3 cameraPos(0,0,-3); // Down and Left +
 vector<Triangle> triangles;
+float yaw = 0;
+mat3 R;
 
 /* ----------------------------------------------------------------------------*/
 /* FUNCTIONS                                                                   */
@@ -103,6 +105,14 @@ void Update()
 		cameraPos.x += 0.1;
 	// Move camera to the right
 	}
+	if( keystate[SDLK_a]){
+		yaw += 0.0174;
+		R = mat3(vec3(1,0,yaw),vec3(0,1,0),vec3(-yaw,0,1));
+	}
+	if( keystate[SDLK_d]){
+		yaw -= 0.0174;
+		R = mat3(vec3(1,0,yaw),vec3(0,1,0),vec3(-yaw,0,1));
+	}
 }
 
 void Draw()
@@ -116,6 +126,7 @@ void Draw()
 		{
 			vec3 color(0,0,0);
 			vec3 d(x-SCREEN_WIDTH/2,y - SCREEN_HEIGHT/2,focalLength);
+			d = R*d;
 			Intersection closestIntersection;
 			closestIntersection.distance = m;
 			if (ClosestIntersection(cameraPos,d,triangles,closestIntersection)){

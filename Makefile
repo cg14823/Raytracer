@@ -11,9 +11,10 @@ GLMDIR=glm
 EXEC=$(B_DIR)/$(FILE)
 
 # default build settings
-CC_OPTS=-c -pipe -Wall -Wno-switch -ggdb -g3 
+CC_OPTS=-c -pipe -Wall -Wno-switch -ggdb -g3
 LN_OPTS=
 CC=g++
+CC_F=
 
 ########
 #       SDL options
@@ -35,18 +36,20 @@ OBJ = $(B_DIR)/$(FILE).o
 ########
 #   Objects
 $(B_DIR)/$(FILE).o : $(S_DIR)/$(FILE).cpp $(S_DIR)/SDLauxiliary.h $(S_DIR)/TestModel.h
-	$(CC) $(CC_OPTS) -o $(B_DIR)/$(FILE).o $(S_DIR)/$(FILE).cpp $(SDL_CFLAGS) $(GLM_CFLAGS)
+	$(CC) $(CC_OPTS) $(CC_F) -o $(B_DIR)/$(FILE).o $(S_DIR)/$(FILE).cpp $(SDL_CFLAGS) $(GLM_CFLAGS)
 
 
 ########
-#   Main build rule     
+#   Main build rule
 Build : $(OBJ) Makefile
 	$(CC) $(LN_OPTS) -o $(EXEC) $(OBJ) $(SDL_LDFLAGS)
 
 
 clean:
-	rm -f $(B_DIR)/* 
+	rm -f $(B_DIR)/*
+
+fast:
+
 
 run:
 	./$(B_DIR)/$(FILE)
-	 
