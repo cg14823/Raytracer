@@ -15,6 +15,9 @@ const int SCREEN_WIDTH = 500;
 const int SCREEN_HEIGHT = 500;
 SDL_Surface* screen;
 int t;
+float focalLength = SCREEN_HEIGHT/2;
+vec3 cameraPos(0,0,-2);
+vector<Triangle> triangles;
 
 /* ----------------------------------------------------------------------------*/
 /* FUNCTIONS                                                                   */
@@ -38,7 +41,7 @@ int main( int argc, char* argv[] )
 {
 	screen = InitializeSDL( SCREEN_WIDTH, SCREEN_HEIGHT );
 	t = SDL_GetTicks();	// Set start value for timer.
-
+	LoadTestModel(triangles);
 	while( NoQuitMessageSDL() )
 	{
 		Update();
@@ -62,7 +65,7 @@ bool ClosestIntersection(vec3 start,vec3 dir,const vector<Triangle>& triangles,I
 		vec3 b = start - v0;
 		mat3 A( -dir, e1, e2 );
 		vec3 x = glm::inverse( A ) * b;
-		if (x.y > 0 && x.z > 0 && (x.y+x.z) < 1 && x.x >= 0){
+		if (x.y >= 0 && x.z >= 0 && (x.y+x.z) <= 1 && x.x >= 0){
 			if (x.x < closestIntersection.distance){
 				closestIntersection.distance = x.x;
 				closestIntersection.position = start+x.x*dir;
@@ -85,14 +88,21 @@ void Update()
 
 void Draw()
 {
+	float m = std::numeric_limits<float>::max();
 	if( SDL_MUSTLOCK(screen) )
 		SDL_LockSurface(screen);
-
 	for( int y=0; y<SCREEN_HEIGHT; ++y )
 	{
 		for( int x=0; x<SCREEN_WIDTH; ++x )
 		{
-			vec3 color( 1.0, 0.0, 0.0 );
+			vec3 color(0,0,0);
+			vec3 d(x-SCREEN_WIDTH/2,y - SCREEN_HEIGHT/2,focalLength);
+			Intersection closestIntersection;
+			closestIntersection.distance = m;
+			bool intersected = ClosestIntersection(cameraPos,d,triangles,closestIntersection);
+			if (intersected){
+				color = triangles[closestIntersection.triangleIndex].color;
+			}
 			PutPixelSDL( screen, x, y, color );
 		}
 	}
