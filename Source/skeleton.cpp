@@ -10,12 +10,20 @@ using namespace std;
 using glm::vec3;
 using glm::mat3;
 
-FILE _iob[] = { *stdin, *stdout, *stderr };
+/*
+ Arrows left, right , up and down
+ a : camera rotate left
+ d : camera rotate right
+ w : move camera foward
+ s : move camera backwards
 
-extern "C" FILE * __cdecl __iob_func(void)
-{
-	return _iob;
-}
+ i: light foward
+ k : light back
+ j : light left
+ l : light right
+
+
+*/
 
 /* ----------------------------------------------------------------------------*/
 /* GLOBAL VARIABLES                                                            */
@@ -132,6 +140,12 @@ void Update()
 		cameraPos.x += 0.1;
 	// Move camera to the right
 	}
+	if (keystate[SDLK_w]) {
+		cameraPos.z += 0.1;
+	}
+	if (keystate[SDLK_s]) {
+		cameraPos.z -= 0.1;
+	}
 	if( keystate[SDLK_a]){
 		yaw += 0.0174;
 		R = mat3(vec3(1,0,yaw),vec3(0,1,0),vec3(-yaw,0,1));
@@ -139,6 +153,23 @@ void Update()
 	if( keystate[SDLK_d]){
 		yaw -= 0.0174;
 		R = mat3(vec3(1,0,yaw),vec3(0,1,0),vec3(-yaw,0,1));
+	}
+
+	if (keystate[SDLK_i]) {
+		lightPos.z += 0.1;
+	}
+	if (keystate[SDLK_k]) {
+		lightPos.z -= 0.1;
+	}
+	if (keystate[SDLK_j]) {
+		lightPos.x -= 0.1;
+	}
+	if (keystate[SDLK_l]) {
+		lightPos.x += 0.1;
+	}
+	if (keystate[SDLK_j]) {
+		yaw -= 0.0174;
+		R = mat3(vec3(1, 0, yaw), vec3(0, 1, 0), vec3(-yaw, 0, 1));
 	}
 }
 

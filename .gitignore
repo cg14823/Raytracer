@@ -4,3 +4,4 @@ Build/
 *.VC.db
 *.VC.VC.opendb
 *64/
+*.bmp
