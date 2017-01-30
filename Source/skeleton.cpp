@@ -3,6 +3,8 @@
 #include <SDL.h>
 #include "SDLauxiliary.h"
 #include "TestModel.h"
+#include <cmath>
+#define PI 3.14159
 
 using namespace std;
 using glm::vec3;
@@ -11,15 +13,23 @@ using glm::mat3;
 /* ----------------------------------------------------------------------------*/
 /* GLOBAL VARIABLES                                                            */
 
-const int SCREEN_WIDTH = 250;
-const int SCREEN_HEIGHT = 250;
+const int SCREEN_WIDTH = 500;
+const int SCREEN_HEIGHT = 500;
 SDL_Surface* screen;
 int t;
+vector<Triangle> triangles;
+
+
 float focalLength = SCREEN_HEIGHT;
 vec3 cameraPos(0,0,-3); // Down and Left +
-vector<Triangle> triangles;
 float yaw = 0;
 mat3 R;
+
+
+vec3 lightPos( 0, -0.5, -0.7 );
+vec3 lightColor = 30.f * vec3( 1, 1, 1 );
+
+vec3 p(0.85,0.85,0.85);
 
 /* ----------------------------------------------------------------------------*/
 /* FUNCTIONS                                                                   */
@@ -38,6 +48,7 @@ bool ClosestIntersection(
 	vec3 dir,
 	const vector<Triangle>& triangles,
 	Intersection& closestIntersection );
+vec3 DirectLight(const Intersection& i);
 
 int main( int argc, char* argv[] )
 {
@@ -74,6 +85,15 @@ bool ClosestIntersection(vec3 start,vec3 dir,const vector<Triangle>& triangles,I
 		}
 	}
 	return intersect;
+}
+
+vec3 DirectLight(const Intersection& i){
+	float light2point = pow(i.position.x - lightPos.x,2) + pow(i.position.y - lightPos.y,2) + pow(i.position.z - lightPos.z,2);
+	float A = ( 4 * 3.14159 * light2point);
+	vec3 B = lightColor/A;
+	float r  = glm::dot(triangles[i.triangleIndex].normal, glm::normalize(lightPos-i.position));
+	vec3 D =  (r>0.0)? B*r: vec3(0,0,0);
+	return D*p;
 }
 
 void Update()
@@ -130,8 +150,9 @@ void Draw()
 			Intersection closestIntersection;
 			closestIntersection.distance = m;
 			if (ClosestIntersection(cameraPos,d,triangles,closestIntersection)){
-				color = triangles[closestIntersection.triangleIndex].color;
+				color = DirectLight(closestIntersection)*triangles[closestIntersection.triangleIndex].color;
 			}
+
 			PutPixelSDL( screen, x, y, color );
 		}
 	}
