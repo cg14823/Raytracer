@@ -48,8 +48,5 @@ clean:
 	rm -f $(B_DIR)/* 
 
 run:
-	rm -f $(B_DIR)/*
-	$(OBJ) Makefile
-	$(CC) $(LN_OPTS) -o $(EXEC) $(OBJ) $(SDL_LDFLAGS)
 	./$(B_DIR)/$(FILE)
 	 
