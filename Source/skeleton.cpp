@@ -46,6 +46,8 @@ vec3 lightColor = 30.f * vec3( 1, 1, 1 );
 
 vec3 p(0.85,0.85,0.85);
 
+float m = std::numeric_limits<float>::max();
+
 /* ----------------------------------------------------------------------------*/
 /* FUNCTIONS                                                                   */
 
@@ -92,10 +94,12 @@ bool ClosestIntersection(vec3 start,vec3 dir,const vector<Triangle>& triangles,I
 		vec3 x = glm::inverse( A ) * b;
 		if (x.x < closestIntersection.distance){
 			if (x.y >= 0 && x.z >= 0 && (x.y+x.z) <= 1 && x.x >= 0){
-				closestIntersection.distance = x.x;
-				closestIntersection.position = start+x.x*dir;
-				closestIntersection.triangleIndex = i;
-				intersect = true;
+				if (closestIntersection.triangleIndex != i) {
+					closestIntersection.distance = x.x;
+					closestIntersection.position = start + x.x*dir;
+					closestIntersection.triangleIndex = i;
+					intersect = true;
+				}
 			}
 		}
 	}
@@ -104,11 +108,20 @@ bool ClosestIntersection(vec3 start,vec3 dir,const vector<Triangle>& triangles,I
 
 vec3 DirectLight(const Intersection& i){
 	float light2point = pow(i.position.x - lightPos.x,2) + pow(i.position.y - lightPos.y,2) + pow(i.position.z - lightPos.z,2);
+	Intersection j;
+	j.distance = m;
+	j.triangleIndex = i.triangleIndex;
+	if (ClosestIntersection(i.position, lightPos-i.position, triangles,j)) {
+		if (j.distance < sqrt(light2point)) {
+			return vec3(0.0, 0.0, 0.0);
+		}
+	}
+	//cout << "h: " << j.distance << " light2pos: " << sqrt(light2point) << endl;
 	float A = ( 4 * 3.14159 * light2point);
 	vec3 B = lightColor/A;
 	float r  = glm::dot(triangles[i.triangleIndex].normal, glm::normalize(lightPos-i.position));
 	vec3 D =  (r>0.0)? B*r: vec3(0,0,0);
-	return D*p;
+	return D;
 }
 
 void Update()
@@ -175,7 +188,7 @@ void Update()
 
 void Draw()
 {
-	float m = std::numeric_limits<float>::max();
+	
 	if( SDL_MUSTLOCK(screen) )
 		SDL_LockSurface(screen);
 	for( int y=0; y<SCREEN_HEIGHT; ++y )
@@ -187,6 +200,7 @@ void Draw()
 			d = R*d;
 			Intersection closestIntersection;
 			closestIntersection.distance = m;
+			closestIntersection.triangleIndex= -1;
 			if (ClosestIntersection(cameraPos,d,triangles,closestIntersection)){
 				color = DirectLight(closestIntersection)*triangles[closestIntersection.triangleIndex].color;
 			}
