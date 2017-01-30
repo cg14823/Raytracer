@@ -11,12 +11,12 @@ using glm::mat3;
 /* ----------------------------------------------------------------------------*/
 /* GLOBAL VARIABLES                                                            */
 
-const int SCREEN_WIDTH = 500;
-const int SCREEN_HEIGHT = 500;
+const int SCREEN_WIDTH = 200;
+const int SCREEN_HEIGHT = 200;
 SDL_Surface* screen;
 int t;
-float focalLength = SCREEN_HEIGHT/2;
-vec3 cameraPos(0,0,-2);
+float focalLength = SCREEN_HEIGHT;
+vec3 cameraPos(0,0,-3); // Down and Left +
 vector<Triangle> triangles;
 
 /* ----------------------------------------------------------------------------*/
@@ -57,21 +57,18 @@ bool ClosestIntersection(vec3 start,vec3 dir,const vector<Triangle>& triangles,I
 	bool intersect = false;
 	for (u_int i = 0;i<triangles.size();i++){
 		Triangle triangle = triangles[i];
-		vec3 v0 = triangle.v0;
-		vec3 v1 = triangle.v1;
-		vec3 v2 = triangle.v2;
-		vec3 e1 = v1 - v0;
-		vec3 e2 = v2 - v0;
-		vec3 b = start - v0;
+		vec3 e1 = triangle.v1 - triangle.v0;
+		vec3 e2 = triangle.v2 - triangle.v0;
+		vec3 b = start - triangle.v0;
 		mat3 A( -dir, e1, e2 );
 		vec3 x = glm::inverse( A ) * b;
-		if (x.y >= 0 && x.z >= 0 && (x.y+x.z) <= 1 && x.x >= 0){
-			if (x.x < closestIntersection.distance){
+		if (x.x < closestIntersection.distance){
+			if (x.y >= 0 && x.z >= 0 && (x.y+x.z) <= 1 && x.x >= 0){
 				closestIntersection.distance = x.x;
 				closestIntersection.position = start+x.x*dir;
 				closestIntersection.triangleIndex = i;
+				intersect = true;
 			}
-			intersect = true;
 		}
 	}
 	return intersect;
@@ -79,11 +76,33 @@ bool ClosestIntersection(vec3 start,vec3 dir,const vector<Triangle>& triangles,I
 
 void Update()
 {
+
 	// Compute frame time:
 	int t2 = SDL_GetTicks();
 	float dt = float(t2-t);
 	t = t2;
 	cout << "Render time: " << dt << " ms." << endl;
+	Uint8* keystate = SDL_GetKeyState( 0 );
+	if( keystate[SDLK_UP] )
+	{
+		cameraPos.y -= 0.1;
+	// Move camera forward
+	}
+	if( keystate[SDLK_DOWN] )
+	{
+		cameraPos.y += 0.1;
+	// Move camera backward
+	}
+	if( keystate[SDLK_LEFT] )
+	{
+		cameraPos.x -= 0.1;
+	// Move camera to the left
+	}
+	if( keystate[SDLK_RIGHT] )
+	{
+		cameraPos.x += 0.1;
+	// Move camera to the right
+	}
 }
 
 void Draw()
@@ -99,8 +118,7 @@ void Draw()
 			vec3 d(x-SCREEN_WIDTH/2,y - SCREEN_HEIGHT/2,focalLength);
 			Intersection closestIntersection;
 			closestIntersection.distance = m;
-			bool intersected = ClosestIntersection(cameraPos,d,triangles,closestIntersection);
-			if (intersected){
+			if (ClosestIntersection(cameraPos,d,triangles,closestIntersection)){
 				color = triangles[closestIntersection.triangleIndex].color;
 			}
 			PutPixelSDL( screen, x, y, color );
