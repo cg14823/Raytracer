@@ -10,6 +10,13 @@ using namespace std;
 using glm::vec3;
 using glm::mat3;
 
+FILE _iob[] = { *stdin, *stdout, *stderr };
+
+extern "C" FILE * __cdecl __iob_func(void)
+{
+	return _iob;
+}
+
 /* ----------------------------------------------------------------------------*/
 /* GLOBAL VARIABLES                                                            */
 
@@ -68,7 +75,7 @@ int main( int argc, char* argv[] )
 bool ClosestIntersection(vec3 start,vec3 dir,const vector<Triangle>& triangles,Intersection& closestIntersection)
 {
 	bool intersect = false;
-	for (u_int i = 0;i<triangles.size();i++){
+	for (int i = 0;i<triangles.size();i++){
 		Triangle triangle = triangles[i];
 		vec3 e1 = triangle.v1 - triangle.v0;
 		vec3 e2 = triangle.v2 - triangle.v0;

@@ -1,1 +1,6 @@
 Build/
+.vs/
+*.suo
+*.VC.db
+*.VC.VC.opendb
+*64/

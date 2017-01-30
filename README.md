@@ -1,2 +1,0 @@
-# Raytracer
-Raytracer
