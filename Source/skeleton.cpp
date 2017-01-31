@@ -42,7 +42,7 @@ mat3 R;
 
 
 vec3 lightPos( 0, -0.5, -0.7 );
-vec3 lightColor = 30.f * vec3( 1, 1, 1 );
+vec3 lightColor = 20.f * vec3( 1, 1, 1 );
 
 vec3 p(0.85,0.85,0.85);
 
@@ -104,37 +104,15 @@ bool ClosestIntersection(vec3 start,vec3 dir,const vector<Triangle>& triangles,I
 	return intersect;
 }
 
-bool intersect(vec3 start, vec3 dir, const vector<Triangle>& triangles, Intersection& closestIntersection)
-{
-	bool intersect = false;
-	for (int i = 0; i<triangles.size(); i++) {
-		
-		Triangle triangle = triangles[i];
-		vec3 e1 = triangle.v1 - triangle.v0;
-		vec3 e2 = triangle.v2 - triangle.v0;
-		vec3 b = start - triangle.v0;
-		mat3 A(-dir, e1, e2);
-		vec3 x = glm::inverse(A) * b;
-		if (x.x < closestIntersection.distance) {
-			closestIntersection.distance = x.x;
-			closestIntersection.position = start + x.x*dir;
-			closestIntersection.triangleIndex = i;
-			intersect = true;
-		}
-		
-	}
-	return intersect;
-}
-
 vec3 DirectLight(const Intersection& i){
 
 	float light2point = pow(i.position.x - lightPos.x,2) + pow(i.position.y - lightPos.y,2) + pow(i.position.z - lightPos.z,2);
 	Intersection j;
 	j.distance = m;
-	if (intersect(i.position, i.position-lightPos, triangles,j)) {
-
+	vec3 d = lightPos - i.position;
+	if (ClosestIntersection(i.position + d*vec3(0.001,0.001,0.001), d, triangles,j)) {
 		//cout << "j: " << abs(j.distance) << " light2pos: " << sqrt(light2point) << endl;
-		if (abs(j.distance) < sqrt(light2point)) {
+		if (abs(roundf(j.distance*100)/100) < floor(sqrt(light2point))) {
 			return vec3(0.0, 0.0, 0.0);
 		}
 	}
