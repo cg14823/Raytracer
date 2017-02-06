@@ -4,7 +4,8 @@
 #include "SDLauxiliary.h"
 #include "TestModel.h"
 #include <cmath>
-#define PI 3.14159
+#include "BRDFRead.h"
+
 
 using namespace std;
 using glm::vec3;
@@ -28,8 +29,8 @@ using glm::mat3;
 /* ----------------------------------------------------------------------------*/
 /* GLOBAL VARIABLES                                                            */
 
-const int SCREEN_WIDTH = 500;
-const int SCREEN_HEIGHT = 500;
+const int SCREEN_WIDTH = 800;
+const int SCREEN_HEIGHT = 800;
 SDL_Surface* screen;
 int t;
 vector<Triangle> triangles;
@@ -48,6 +49,8 @@ vec3 indirectLight = 0.4f*vec3( 1, 1, 1 );
 vec3 p(0.85,0.85,0.85);
 
 float m = std::numeric_limits<float>::max();
+
+double* brdf;
 
 /* ----------------------------------------------------------------------------*/
 /* FUNCTIONS                                                                   */
@@ -73,6 +76,11 @@ int main( int argc, char* argv[] )
 	screen = InitializeSDL( SCREEN_WIDTH, SCREEN_HEIGHT );
 	t = SDL_GetTicks();	// Set start value for timer.
 	LoadTestModel(triangles);
+	if (!read_brdf("steel.binary", brdf))
+	{
+		fprintf(stderr, "Error reading %s\n", "steel.binary");
+		exit(1);
+	}
 	while( NoQuitMessageSDL() )
 	{
 		Update();
@@ -122,6 +130,20 @@ vec3 DirectLight(const Intersection& i){
 	float r  = glm::dot(triangles[i.triangleIndex].normal, glm::normalize(lightPos-i.position));
 	vec3 D =  (r>0.0)? B*r: vec3(0,0,0);
 	return D;
+}
+
+vec3 cartToSpherical(vec3 input){
+	vec3 spherical(0,0,0);
+	float x = input.x;
+	float y = input.y;
+	float z = input.z;
+	spherical.x = sqrt(x*x+y*y+z*z);
+	spherical.y = atan2(y,x);
+	if (spherical.y < 0){
+		spherical.y = abs(spherical.y) + M_PI;
+	}
+	spherical.z = acos(z/spherical.x);
+	return spherical;
 }
 
 void Update()
@@ -192,11 +214,12 @@ void Draw()
 		for( int x=0; x<SCREEN_WIDTH; ++x )
 		{
 			vec3 finalColor(0,0,0);
+			/*
 			for (float y2 = -0.5f; y2<0.5f;y2+=0.5f){
 				for (float x2 = -0.5f; x2<0.5f;x2+=0.5f){
 					vec3 color(0,0,0);
 					vec3 d(x+(x2)-SCREEN_WIDTH/2,y+(y2) - SCREEN_HEIGHT/2,focalLength);
-					d = R*d;
+					d = R*glm::normalize(d);
 
 					Intersection closestIntersection;
 					closestIntersection.distance = m;
@@ -207,8 +230,29 @@ void Draw()
 					finalColor = finalColor + color;
 				}
 			}
+			*/
+			vec3 d(x+-SCREEN_WIDTH/2,y+ - SCREEN_HEIGHT/2,focalLength);
+			d = R*d;
 
-			PutPixelSDL( screen, x, y, finalColor*(1.0f/9.0f) );
+			Intersection closestIntersection;
+			closestIntersection.distance = m;
+			closestIntersection.triangleIndex= -1;
+
+			if (ClosestIntersection(cameraPos,d,triangles,closestIntersection)){
+				finalColor = triangles[closestIntersection.triangleIndex].color*(indirectLight + DirectLight(closestIntersection));
+				vec3 dCamera = (cameraPos - closestIntersection.position);
+				vec3 dSpher = cartToSpherical(dCamera);
+				vec3 dLight = (lightPos - closestIntersection.position);
+				vec3 dlSpher = cartToSpherical(dLight);
+				double red,green,blue;
+				lookup_brdf_val(brdf,dlSpher.y,dlSpher.z,dSpher.y,dSpher.z,red,green,blue);
+				finalColor.x *= (float)red;
+				finalColor.y *= (float)green;
+				finalColor.z *= (float)blue;
+			}
+
+
+			PutPixelSDL( screen, x, y, finalColor );
 		}
 	}
 
