@@ -10,6 +10,21 @@ using namespace std;
 using glm::vec3;
 using glm::mat3;
 
+/*
+ Arrows left, right , up and down
+ a : camera rotate left
+ d : camera rotate right
+ w : move camera foward
+ s : move camera backwards
+
+ i: light foward
+ k : light back
+ j : light left
+ l : light right
+
+
+*/
+
 /* ----------------------------------------------------------------------------*/
 /* GLOBAL VARIABLES                                                            */
 
@@ -27,9 +42,12 @@ mat3 R;
 
 
 vec3 lightPos( 0, -0.5, -0.7 );
-vec3 lightColor = 30.f * vec3( 1, 1, 1 );
+vec3 lightColor = 20.f * vec3( 1, 1, 1 );
+vec3 indirectLight = 0.5f*vec3( 1, 1, 1 );
 
 vec3 p(0.85,0.85,0.85);
+
+float m = std::numeric_limits<float>::max();
 
 /* ----------------------------------------------------------------------------*/
 /* FUNCTIONS                                                                   */
@@ -68,7 +86,7 @@ int main( int argc, char* argv[] )
 bool ClosestIntersection(vec3 start,vec3 dir,const vector<Triangle>& triangles,Intersection& closestIntersection)
 {
 	bool intersect = false;
-	for (u_int i = 0;i<triangles.size();i++){
+	for (int i = 0;i<triangles.size();i++){
 		Triangle triangle = triangles[i];
 		vec3 e1 = triangle.v1 - triangle.v0;
 		vec3 e2 = triangle.v2 - triangle.v0;
@@ -78,7 +96,7 @@ bool ClosestIntersection(vec3 start,vec3 dir,const vector<Triangle>& triangles,I
 		if (x.x < closestIntersection.distance){
 			if (x.y >= 0 && x.z >= 0 && (x.y+x.z) <= 1 && x.x >= 0){
 				closestIntersection.distance = x.x;
-				closestIntersection.position = start+x.x*dir;
+				closestIntersection.position = start + x.x*dir;
 				closestIntersection.triangleIndex = i;
 				intersect = true;
 			}
@@ -88,12 +106,22 @@ bool ClosestIntersection(vec3 start,vec3 dir,const vector<Triangle>& triangles,I
 }
 
 vec3 DirectLight(const Intersection& i){
+
 	float light2point = pow(i.position.x - lightPos.x,2) + pow(i.position.y - lightPos.y,2) + pow(i.position.z - lightPos.z,2);
+	Intersection j;
+	j.distance = m;
+	vec3 d = glm::normalize(lightPos - i.position);
+	if (ClosestIntersection(i.position + d*vec3(0.00001,0.00001,0.00001), d, triangles,j)) {
+		//cout << "j: " << abs(j.distance) << " light2pos: " << sqrt(light2point) << endl;
+		if (abs(j.distance) < (sqrt(light2point))) {
+			return vec3(0.0, 0.0, 0.0);
+		}
+	}
 	float A = ( 4 * 3.14159 * light2point);
 	vec3 B = lightColor/A;
 	float r  = glm::dot(triangles[i.triangleIndex].normal, glm::normalize(lightPos-i.position));
 	vec3 D =  (r>0.0)? B*r: vec3(0,0,0);
-	return D*p;
+	return D;
 }
 
 void Update()
@@ -125,6 +153,12 @@ void Update()
 		cameraPos.x += 0.1;
 	// Move camera to the right
 	}
+	if (keystate[SDLK_w]) {
+		cameraPos.z += 0.1;
+	}
+	if (keystate[SDLK_s]) {
+		cameraPos.z -= 0.1;
+	}
 	if( keystate[SDLK_a]){
 		yaw += 0.0174;
 		R = mat3(vec3(1,0,yaw),vec3(0,1,0),vec3(-yaw,0,1));
@@ -133,11 +167,24 @@ void Update()
 		yaw -= 0.0174;
 		R = mat3(vec3(1,0,yaw),vec3(0,1,0),vec3(-yaw,0,1));
 	}
+
+	if (keystate[SDLK_i]) {
+		lightPos.z += 0.1;
+	}
+	if (keystate[SDLK_k]) {
+		lightPos.z -= 0.1;
+	}
+	if (keystate[SDLK_j]) {
+		lightPos.x -= 0.1;
+	}
+	if (keystate[SDLK_l]) {
+		lightPos.x += 0.1;
+	}
 }
 
 void Draw()
 {
-	float m = std::numeric_limits<float>::max();
+
 	if( SDL_MUSTLOCK(screen) )
 		SDL_LockSurface(screen);
 	for( int y=0; y<SCREEN_HEIGHT; ++y )
@@ -149,6 +196,7 @@ void Draw()
 			d = R*d;
 			Intersection closestIntersection;
 			closestIntersection.distance = m;
+			closestIntersection.triangleIndex= -1;
 			if (ClosestIntersection(cameraPos,d,triangles,closestIntersection)){
 				color = DirectLight(closestIntersection)*triangles[closestIntersection.triangleIndex].color;
 			}
