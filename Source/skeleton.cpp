@@ -42,7 +42,8 @@ mat3 R;
 
 
 vec3 lightPos( 0, -0.5, -0.7 );
-vec3 lightColor = 20.f * vec3( 1, 1, 1 );
+vec3 lightColor = 10.f * vec3( 1, 1, 1 );
+vec3 indirectLight = 0.5f*vec3(1, 1, 1);
 
 vec3 p(0.85,0.85,0.85);
 
@@ -197,7 +198,7 @@ void Draw()
 			closestIntersection.distance = m;
 			closestIntersection.triangleIndex= -1;
 			if (ClosestIntersection(cameraPos,d,triangles,closestIntersection)){
-				color = DirectLight(closestIntersection)*triangles[closestIntersection.triangleIndex].color;
+				color = (DirectLight(closestIntersection)+indirectLight)*triangles[closestIntersection.triangleIndex].color;
 			}
 
 			PutPixelSDL( screen, x, y, color );
