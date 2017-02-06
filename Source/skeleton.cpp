@@ -42,8 +42,8 @@ mat3 R;
 
 
 vec3 lightPos( 0, -0.5, -0.7 );
-vec3 lightColor = 20.f * vec3( 1, 1, 1 );
-vec3 indirectLight = 0.2f*vec3( 1, 1, 1 );
+vec3 lightColor = 40.f * vec3( 1, 1, 1 );
+vec3 indirectLight = 0.4f*vec3( 1, 1, 1 );
 
 vec3 p(0.85,0.85,0.85);
 
@@ -191,18 +191,24 @@ void Draw()
 	{
 		for( int x=0; x<SCREEN_WIDTH; ++x )
 		{
-			vec3 color(0,0,0);
-			vec3 d(x-SCREEN_WIDTH/2,y - SCREEN_HEIGHT/2,focalLength);
-			d = R*d;
-			Intersection closestIntersection;
-			closestIntersection.distance = m;
-			closestIntersection.triangleIndex= -1;
-			if (ClosestIntersection(cameraPos,d,triangles,closestIntersection)){
+			vec3 finalColor(0,0,0);
+			for (float y2 = -0.5f; y2<0.5f;y2+=0.5f){
+				for (float x2 = -0.5f; x2<0.5f;x2+=0.5f){
+					vec3 color(0,0,0);
+					vec3 d(x+(x2)-SCREEN_WIDTH/2,y+(y2) - SCREEN_HEIGHT/2,focalLength);
+					d = R*d;
 
-				color = triangles[closestIntersection.triangleIndex].color*(indirectLight + DirectLight(closestIntersection)*triangles[closestIntersection.triangleIndex].color);
+					Intersection closestIntersection;
+					closestIntersection.distance = m;
+					closestIntersection.triangleIndex= -1;
+					if (ClosestIntersection(cameraPos,d,triangles,closestIntersection)){
+						color = triangles[closestIntersection.triangleIndex].color*(indirectLight + DirectLight(closestIntersection)*triangles[closestIntersection.triangleIndex].color);
+					}
+					finalColor = finalColor + color;
+				}
 			}
 
-			PutPixelSDL( screen, x, y, color );
+			PutPixelSDL( screen, x, y, finalColor*(1.0f/9.0f) );
 		}
 	}
 
