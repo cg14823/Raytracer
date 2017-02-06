@@ -109,10 +109,10 @@ vec3 DirectLight(const Intersection& i){
 	float light2point = pow(i.position.x - lightPos.x,2) + pow(i.position.y - lightPos.y,2) + pow(i.position.z - lightPos.z,2);
 	Intersection j;
 	j.distance = m;
-	vec3 d = lightPos - i.position;
-	if (ClosestIntersection(i.position + d*vec3(0.001,0.001,0.001), d, triangles,j)) {
-		//cout << "j: " << abs(j.distance) << " light2pos: " << sqrt(light2point) << endl;
-		if (abs(roundf(j.distance*100)/100) < floor(sqrt(light2point))) {
+	vec3 d = glm::normalize(lightPos - i.position);
+	if (ClosestIntersection(i.position+d*vec3(0.00001,0.00001,0.00001), d, triangles,j)) {
+
+		if (abs(j.distance) < sqrt(light2point)){
 			return vec3(0.0, 0.0, 0.0);
 		}
 	}
