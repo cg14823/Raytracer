@@ -6,6 +6,8 @@
 #include <cmath>
 #define PI 3.14159
 
+extern "C" { FILE __iob_func[3] = { *stdin,*stdout,*stderr }; }
+
 using namespace std;
 using glm::vec3;
 using glm::mat3;
