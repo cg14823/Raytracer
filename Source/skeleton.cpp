@@ -89,12 +89,13 @@ bool ClosestIntersection(vec3 start, vec3 dir, const vector<Triangle>& triangles
 {
 	bool intersect = false;
 	for (int i = 0; i<triangles.size(); i++) {
+
 		Triangle triangle = triangles[i];
 		vec3 e1 = triangle.v1 - triangle.v0;
 		vec3 e2 = triangle.v2 - triangle.v0;
-		vec3 b = start - triangle.v0;
-		mat3 A(-dir, e1, e2);
-		vec3 x = glm::inverse(A) * b;
+		vec3 p = glm::cross(dir, e2);
+		vec3 q = glm::cross(start - triangle.v0, e1);
+		vec3 x =(1/(glm::dot(p, e1)))* vec3(glm::dot(q,e2),glm::dot(p,start - triangle.v0), glm::dot(q,dir));
 		if (x.x < closestIntersection.distance) {
 			if (x.y >= 0 && x.z >= 0 && (x.y + x.z) <= 1 && x.x >= 0) {
 				closestIntersection.distance = x.x;
