@@ -190,6 +190,7 @@ void Draw()
 
 	if (SDL_MUSTLOCK(screen))
 		SDL_LockSurface(screen);
+#pragma omp parallel for
 	for (int y = 0; y<SCREEN_HEIGHT; ++y)
 	{
 		for (int x = 0; x<SCREEN_WIDTH; ++x)

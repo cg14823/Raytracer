@@ -77,6 +77,7 @@
       <AdditionalIncludeDirectories>D:\Documents\University\Year3\CG\SDL-devel-1.2.15-VC\include;D:\Documents\University\Year3\CG\glm;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <BasicRuntimeChecks>Default</BasicRuntimeChecks>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
+      <OpenMPSupport>true</OpenMPSupport>
     </ClCompile>
     <Link>
       <TargetMachine>MachineX86</TargetMachine>
@@ -95,6 +96,7 @@
       <AdditionalIncludeDirectories>D:\Documents\University\Year3\CG\SDL-devel-1.2.15-VC\include;D:\Documents\University\Year3\CG\glm;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <Optimization>MaxSpeed</Optimization>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
+      <OpenMPSupport>true</OpenMPSupport>
     </ClCompile>
     <Link>
       <TargetMachine>MachineX86</TargetMachine>
@@ -113,6 +115,7 @@
       <WarningLevel>TurnOffAllWarnings</WarningLevel>
       <BasicRuntimeChecks>Default</BasicRuntimeChecks>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
+      <OpenMPSupport>true</OpenMPSupport>
     </ClCompile>
     <Link>
       <AdditionalOptions>D:\Documents\University\Year3\CG\SDL-devel-1.2.15-VC\lib\x64\SDL.lib D:\Documents\University\Year3\CG\SDL-devel-1.2.15-VC\lib\x64\SDLmain.lib %(AdditionalOptions)</AdditionalOptions>
@@ -126,6 +129,7 @@
       <Optimization>MaxSpeed</Optimization>
       <WarningLevel>TurnOffAllWarnings</WarningLevel>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
+      <OpenMPSupport>true</OpenMPSupport>
     </ClCompile>
     <Link>
       <AdditionalOptions>D:\Documents\University\Year3\CG\SDL-devel-1.2.15-VC\lib\x64\SDL.lib D:\Documents\University\Year3\CG\SDL-devel-1.2.15-VC\lib\x64\SDLmain.lib %(AdditionalOptions)</AdditionalOptions>
