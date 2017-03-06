@@ -63,11 +63,7 @@ struct Intersection
 
 void Update();
 void Draw();
-bool ClosestIntersection(
-	vec3 start,
-	vec3 dir,
-	const vector<Triangle>& triangles,
-	Intersection& closestIntersection);
+bool ClosestIntersection(vec3& start,vec3& dir, const vector<Triangle>& triangles, Intersection& closestIntersection);
 vec3 DirectLight(const Intersection& i);
 
 int main(int argc, char* argv[])
@@ -85,7 +81,7 @@ int main(int argc, char* argv[])
 	return 0;
 }
 
-bool ClosestIntersection(vec3 start, vec3 dir, const vector<Triangle>& triangles, Intersection& closestIntersection)
+bool ClosestIntersection(vec3& start, vec3& dir, const vector<Triangle>& triangles, Intersection& closestIntersection)
 {
 	bool intersect = false;
 	for (int i = 0; i<triangles.size(); i++) {
