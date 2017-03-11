@@ -50,6 +50,7 @@ vec3 indirectLight = 0.4f*vec3(1, 1, 1);
 vec3 p(0.85, 0.85, 0.85);
 
 float m = std::numeric_limits<float>::max();
+vec3 frameBuffer[SCREEN_HEIGHT][SCREEN_WIDTH];
 
 /* ----------------------------------------------------------------------------*/
 /* FUNCTIONS                                                                   */
