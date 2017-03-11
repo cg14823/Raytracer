@@ -203,10 +203,12 @@ void lookup_brdf_val(double* brdf, double theta_in, double fi_in,
 	red_val = brdf[ind] * RED_SCALE;
 	green_val = brdf[ind + BRDF_SAMPLING_RES_THETA_H*BRDF_SAMPLING_RES_THETA_D*BRDF_SAMPLING_RES_PHI_D/2] * GREEN_SCALE;
 	blue_val = brdf[ind + BRDF_SAMPLING_RES_THETA_H*BRDF_SAMPLING_RES_THETA_D*BRDF_SAMPLING_RES_PHI_D] * BLUE_SCALE;
+	//std::cout << red_val << "," << green_val << "," << blue_val << "\n";
 
 
-	if (red_val < 0.0 || green_val < 0.0 || blue_val < 0.0)
-		fprintf(stderr, "Below horizon.\n");
+
+	//if (red_val < 0.0 || green_val < 0.0 || blue_val < 0.0)
+		//fprintf(stderr, "Below horizon.\n");
 
 }
 

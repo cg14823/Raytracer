@@ -29,8 +29,8 @@ using glm::mat3;
 /* ----------------------------------------------------------------------------*/
 /* GLOBAL VARIABLES                                                            */
 
-const int SCREEN_WIDTH = 800;
-const int SCREEN_HEIGHT = 800;
+const int SCREEN_WIDTH = 500;
+const int SCREEN_HEIGHT = 500;
 SDL_Surface* screen;
 int t;
 vector<Triangle> triangles;
@@ -78,7 +78,7 @@ int main( int argc, char* argv[] )
 	LoadTestModel(triangles);
 	if (!read_brdf("steel.binary", brdf))
 	{
-		fprintf(stderr, "Error reading %s\n", "steel.binary");
+		fprintf(stderr, "Error reading %s\n", "red-specular-plastic.binary");
 		exit(1);
 	}
 	while( NoQuitMessageSDL() )
@@ -132,17 +132,34 @@ vec3 DirectLight(const Intersection& i){
 	return D;
 }
 
-vec3 cartToSpherical(vec3 input){
+vec3 cartToSpherical(vec3 input, vec3 normal,vec3 tangent){
 	vec3 spherical(0,0,0);
 	float x = input.x;
 	float y = input.y;
 	float z = input.z;
-	spherical.x = sqrt(x*x+y*y+z*z);
-	spherical.y = atan2(y,x);
-	if (spherical.y < 0){
-		spherical.y = abs(spherical.y) + M_PI;
-	}
-	spherical.z = acos(z/spherical.x);
+	float xn = normal.x;
+	float yn = normal.y;
+	float zn = normal.z;
+	float dot = x*xn + y*yn + z*zn;
+	float lenSq1 = xn*xn + yn*yn + zn*zn;
+	float lenSq2 = x*x + y*y + z*z;
+	float angle = acos(dot/sqrt(lenSq1 * lenSq2));
+	float tanSq = tangent.x*tangent.x + tangent.y*tangent.y + tangent.z*tangent.z;
+	float len3;
+	if (angle == 0) len3 = sqrt(lenSq2);
+	else len3 = sqrt(lenSq2)*cos((M_PI/2)-angle);
+	vec3 side4 = tangent - input;
+	float lenSq4 = side4.x*side4.x + side4.y*side4.y + side4.z*side4.z;
+	if (angle == 0) lenSq4 = sqrt(lenSq4);
+	else lenSq4 = sqrt(lenSq4)*cos((M_PI/2)-angle);
+	float val1 = (len3*len3) + tanSq - (lenSq4*lenSq4);
+	float val2 = (2*len3*sqrt(tanSq));
+	float cosvalue = val1/val2;
+
+	spherical.x = sqrt(x*x+y*y+z*z); //rho
+	spherical.y = angle;//acos(z/spherical.x); //theta
+	if (angle == 0) spherical.z = 0;
+	else spherical.z = acos(cosvalue); //phi
 	return spherical;
 }
 
@@ -202,6 +219,12 @@ void Update()
 	if (keystate[SDLK_l]) {
 		lightPos.x += 0.1;
 	}
+	if (keystate[SDLK_y]) {
+		lightPos.y -= 0.1;
+	}
+	if (keystate[SDLK_h]) {
+		lightPos.y += 0.1;
+	}
 }
 
 void Draw()
@@ -240,15 +263,17 @@ void Draw()
 
 			if (ClosestIntersection(cameraPos,d,triangles,closestIntersection)){
 				finalColor = triangles[closestIntersection.triangleIndex].color*(indirectLight + DirectLight(closestIntersection));
-				vec3 dCamera = (cameraPos - closestIntersection.position);
-				vec3 dSpher = cartToSpherical(dCamera);
-				vec3 dLight = (lightPos - closestIntersection.position);
-				vec3 dlSpher = cartToSpherical(dLight);
+				vec3 triangleTangent = glm::normalize(triangles[closestIntersection.triangleIndex].v0 - triangles[closestIntersection.triangleIndex].v1);
+				vec3 dCamera = glm::normalize(cameraPos - closestIntersection.position);
+				vec3 dSpher = cartToSpherical(dCamera,triangles[closestIntersection.triangleIndex].normal,triangleTangent); //point to camera spherical coords
+				vec3 dLight = glm::normalize(lightPos - closestIntersection.position);
+				vec3 dlSpher = cartToSpherical(dLight,triangles[closestIntersection.triangleIndex].normal,triangleTangent); //point to light spherical coords
 				double red,green,blue;
+				cout << dlSpher.y << "," << dlSpher.z << " :: " << dSpher.y << "," << dSpher.z << "\n";
 				lookup_brdf_val(brdf,dlSpher.y,dlSpher.z,dSpher.y,dSpher.z,red,green,blue);
-				finalColor.x *= (float)red;
-				finalColor.y *= (float)green;
-				finalColor.z *= (float)blue;
+				finalColor.x = (float)red;
+				finalColor.y = (float)green;
+				finalColor.z = (float)blue;
 			}
 
 
