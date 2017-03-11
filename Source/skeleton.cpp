@@ -49,8 +49,11 @@ vec3 indirectLight = 0.4f*vec3(1, 1, 1);
 
 vec3 p(0.85, 0.85, 0.85);
 
-float m = std::numeric_limits<float>::max();
+float maxFloat = std::numeric_limits<float>::max();
 vec3 frameBuffer[SCREEN_HEIGHT][SCREEN_WIDTH];
+float maskBuffer[SCREEN_HEIGHT][SCREEN_WIDTH];
+float focusPoint = 4.0f;
+float blurExp = 1.1f;
 
 /* ----------------------------------------------------------------------------*/
 /* FUNCTIONS                                                                   */
@@ -62,6 +65,7 @@ struct Intersection
 	int triangleIndex;
 };
 
+void postBlur();
 void Update();
 void Draw();
 bool ClosestIntersection(vec3& start,vec3& dir, const vector<Triangle>& triangles, Intersection& closestIntersection);
@@ -94,7 +98,7 @@ bool ClosestIntersection(vec3& start, vec3& dir, const vector<Triangle>& triangl
 		vec3 q = glm::cross(start - triangle.v0, e1);
 		vec3 x =(1/(glm::dot(p, e1)))* vec3(glm::dot(q,e2),glm::dot(p,start - triangle.v0), glm::dot(q,dir));
 		if (x.x < closestIntersection.distance) {
-			if (x.y >= 0 && x.z >= 0 && (x.y + x.z) <= 1 && x.x >= 0) {
+			if (x.y >= 0.0f && x.z >= 0.0f && (x.y + x.z) <= 1.0f && x.x >= 0.0f) {
 				closestIntersection.distance = x.x;
 				closestIntersection.position = start + x.x*dir;
 				closestIntersection.triangleIndex = i;
@@ -109,18 +113,18 @@ vec3 DirectLight(const Intersection& i) {
 
 	float light2point = pow(i.position.x - lightPos.x, 2) + pow(i.position.y - lightPos.y, 2) + pow(i.position.z - lightPos.z, 2);
 	Intersection j;
-	j.distance = m;
+	j.distance = maxFloat;
 	vec3 d = glm::normalize(lightPos - i.position);
-	if (ClosestIntersection(i.position + d*vec3(0.00001, 0.00001, 0.00001), d, triangles, j)) {
+	if (ClosestIntersection(i.position + d*vec3(0.002, 0.002, 0.002), d, triangles, j)) {
 		//cout << "j: " << abs(j.distance) << " light2pos: " << sqrt(light2point) << endl;
 		if (abs(j.distance) < (sqrt(light2point))) {
 			return vec3(0.0, 0.0, 0.0);
 		}
 	}
-	float A = (4 * 3.14159 * light2point);
+	float A = (4.0f * 3.14159f * light2point);
 	vec3 B = lightColor / A;
 	float r = glm::dot(triangles[i.triangleIndex].normal, glm::normalize(lightPos - i.position));
-	vec3 D = (r>0.0) ? B*r : vec3(0, 0, 0);
+	vec3 D = (r>0.0f) ? B*r : vec3(0.0f, 0.0f, 0.0f);
 	return D;
 }
 
@@ -187,34 +191,70 @@ void Draw()
 
 	if (SDL_MUSTLOCK(screen))
 		SDL_LockSurface(screen);
+
+
 #pragma omp parallel for
 	for (int y = 0; y<SCREEN_HEIGHT; ++y)
 	{
 		for (int x = 0; x<SCREEN_WIDTH; ++x)
 		{
-			vec3 finalColor(0, 0, 0);
+			vec3 finalColor(0.0f, 0.0f, 0.0f);
 			for (float y2 = -0.5f; y2<0.5f; y2 += 0.5f) {
 				for (float x2 = -0.5f; x2<0.5f; x2 += 0.5f) {
 					vec3 color(0, 0, 0);
-					vec3 d(x + (x2)-SCREEN_WIDTH / 2, y + (y2)-SCREEN_HEIGHT / 2, focalLength);
+					vec3 d(x + (x2)-SCREEN_WIDTH / 2.0f, y + (y2)-SCREEN_HEIGHT / 2.0f, focalLength);
 					d = R*d;
 
 					Intersection closestIntersection;
-					closestIntersection.distance = m;
+					closestIntersection.distance = maxFloat;
 					closestIntersection.triangleIndex = -1;
 					if (ClosestIntersection(cameraPos, d, triangles, closestIntersection)) {
 						color = triangles[closestIntersection.triangleIndex].color*(indirectLight + DirectLight(closestIntersection)*triangles[closestIntersection.triangleIndex].color);
 					}
+					if(x2 == 0.0f && y2 == 0.0f)maskBuffer[y][x] = closestIntersection.distance * 1000;
 					finalColor = finalColor + color;
 				}
 			}
 
-			PutPixelSDL(screen, x, y, finalColor*(1.0f / 9.0f));
+			frameBuffer[y][x] = finalColor*(1.0f / 9.0f);
 		}
 	}
+	postBlur();
 
 	if (SDL_MUSTLOCK(screen))
 		SDL_UnlockSurface(screen);
 
 	SDL_UpdateRect(screen, 0, 0, 0, 0);
+}
+
+void postBlur() {
+#pragma omp parallel for
+	for (int y = 0; y < SCREEN_HEIGHT; ++y)
+	{
+		for (int x = 0; x < SCREEN_WIDTH; ++x)
+		{
+			float dist = abs(maskBuffer[y][x] -focusPoint);
+			if (dist < 1 ) PutPixelSDL(screen, x, y, frameBuffer[y][x]);
+			else {
+				float boxr = roundf(powf(blurExp, dist));
+				if (boxr > SCREEN_HEIGHT) boxr = SCREEN_HEIGHT;
+				int i = 0;
+				vec3 currColor = vec3(0.0f, 0.0f, 0.0f);
+
+				int yr = (y - boxr < 0) ? 0 : y - boxr;
+				int xr = (x - boxr < 0) ? 0 : x - boxr;
+				int stopy = (y + boxr < SCREEN_HEIGHT-1) ? y + boxr : SCREEN_HEIGHT-1;
+				int stopx = (x + boxr < SCREEN_WIDTH-1) ? x + boxr : SCREEN_WIDTH-1;
+				for (yr; yr <= stopy; yr++) {
+					for (xr; xr <= stopx; xr++) {
+						currColor += frameBuffer[yr][xr];
+						i++;
+					}
+				}
+				currColor = currColor / ((float)i);
+				PutPixelSDL(screen, x, y, currColor);
+			}
+		}
+	}
+
 }
