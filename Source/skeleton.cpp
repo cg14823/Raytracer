@@ -4,27 +4,27 @@
 #include "SDLauxiliary.h"
 #include "TestModel.h"
 #include <cmath>
-#include "BRDFRead.h"
-
+#define PI 3.14159
 
 using namespace std;
 using glm::vec3;
 using glm::mat3;
 
 /*
- Arrows left, right , up and down
- a : camera rotate left
- d : camera rotate right
- w : move camera foward
- s : move camera backwards
+Arrows left, right , up and down
+a : camera rotate left
+d : camera rotate right
+w : move camera foward
+s : move camera backwards
 
- i: light foward
- k : light back
- j : light left
- l : light right
+i: light foward
+k : light back
+j : light left
+l : light right
 
 
 */
+
 
 /* ----------------------------------------------------------------------------*/
 /* GLOBAL VARIABLES                                                            */
@@ -34,23 +34,26 @@ const int SCREEN_HEIGHT = 500;
 SDL_Surface* screen;
 int t;
 vector<Triangle> triangles;
+vector<BoundingBox> boxes;
 
 
 float focalLength = SCREEN_HEIGHT;
-vec3 cameraPos(0,0,-3); // Down and Left +
+vec3 cameraPos(0, 0, -3); // Down and Left +
 float yaw = 0;
 mat3 R;
 
 
-vec3 lightPos( 0, -0.5, -0.7 );
-vec3 lightColor = 40.f * vec3( 1, 1, 1 );
-vec3 indirectLight = 0.4f*vec3( 1, 1, 1 );
+vec3 lightPos(0, -0.5, -0.7);
+vec3 lightColor = 40.f * vec3(1, 1, 1);
+vec3 indirectLight = 0.4f*vec3(1, 1, 1);
 
-vec3 p(0.85,0.85,0.85);
+vec3 p(0.85, 0.85, 0.85);
 
-float m = std::numeric_limits<float>::max();
-
-double* brdf;
+float maxFloat = std::numeric_limits<float>::max();
+vec3 frameBuffer[SCREEN_HEIGHT][SCREEN_WIDTH];
+float maskBuffer[SCREEN_HEIGHT][SCREEN_WIDTH];
+float focusPoint = 4.0f;
+float blurExp = 1.1f;
 
 /* ----------------------------------------------------------------------------*/
 /* FUNCTIONS                                                                   */
@@ -62,47 +65,47 @@ struct Intersection
 	int triangleIndex;
 };
 
+
+
+void postBlur();
 void Update();
 void Draw();
-bool ClosestIntersection(
-	vec3 start,
-	vec3 dir,
-	const vector<Triangle>& triangles,
-	Intersection& closestIntersection );
+bool ClosestIntersection(vec3& start,vec3& dir, const vector<Triangle>& triangles, Intersection& closestIntersection);
 vec3 DirectLight(const Intersection& i);
+float getAngle(vec3 point);
 
-int main( int argc, char* argv[] )
+int main(int argc, char* argv[])
 {
-	screen = InitializeSDL( SCREEN_WIDTH, SCREEN_HEIGHT );
+	screen = InitializeSDL(SCREEN_WIDTH, SCREEN_HEIGHT);
 	t = SDL_GetTicks();	// Set start value for timer.
-	LoadTestModel(triangles);
-	if (!read_brdf("steel.binary", brdf))
-	{
-		fprintf(stderr, "Error reading %s\n", "red-specular-plastic.binary");
-		exit(1);
-	}
-	while( NoQuitMessageSDL() )
+	LoadTestModel(triangles,boxes);
+
+
+	while (NoQuitMessageSDL())
 	{
 		Update();
 		Draw();
 	}
 
-	SDL_SaveBMP( screen, "screenshot.bmp" );
+
+	SDL_SaveBMP(screen, "screenshot.bmp");
 	return 0;
 }
 
-bool ClosestIntersection(vec3 start,vec3 dir,const vector<Triangle>& triangles,Intersection& closestIntersection)
+
+bool ClosestIntersection(vec3& start, vec3& dir, const vector<Triangle>& triangles, Intersection& closestIntersection)
 {
 	bool intersect = false;
-	for (int i = 0;i<triangles.size();i++){
+	for (int i = 0; i<triangles.size(); i++) {
+
 		Triangle triangle = triangles[i];
 		vec3 e1 = triangle.v1 - triangle.v0;
 		vec3 e2 = triangle.v2 - triangle.v0;
-		vec3 b = start - triangle.v0;
-		mat3 A( -dir, e1, e2 );
-		vec3 x = glm::inverse( A ) * b;
-		if (x.x < closestIntersection.distance){
-			if (x.y >= 0 && x.z >= 0 && (x.y+x.z) <= 1 && x.x >= 0){
+		vec3 p = glm::cross(dir, e2);
+		vec3 q = glm::cross(start - triangle.v0, e1);
+		vec3 x =(1/(glm::dot(p, e1)))* vec3(glm::dot(q,e2),glm::dot(p,start - triangle.v0), glm::dot(q,dir));
+		if (x.x < closestIntersection.distance) {
+			if (x.y >= 0.0f && x.z >= 0.0f && (x.y + x.z) <= 1.0f && x.x >= 0.0f) {
 				closestIntersection.distance = x.x;
 				closestIntersection.position = start + x.x*dir;
 				closestIntersection.triangleIndex = i;
@@ -110,57 +113,69 @@ bool ClosestIntersection(vec3 start,vec3 dir,const vector<Triangle>& triangles,I
 			}
 		}
 	}
+
 	return intersect;
 }
 
-vec3 DirectLight(const Intersection& i){
+bool BoxIntersect(vec3 start, vec3 dir,Intersection& boxIntersect)
+{
 
-	float light2point = pow(i.position.x - lightPos.x,2) + pow(i.position.y - lightPos.y,2) + pow(i.position.z - lightPos.z,2);
+	bool intersectFound = false;
+	for (int i=0;i<boxes.size();i++){
+		//cout << "HERE0\n";
+		float tmin = -maxFloat,tmax = maxFloat;
+		BoundingBox box = boxes[i];
+		float tx1 = (box.dynamicBox.min.x - start.x) / dir.x;
+		float tx2 = (box.dynamicBox.max.x - start.x) / dir.x;
+
+		tmin = max(tmin,min(tx1,tx2));
+		tmax = min(tmax,max(tx1,tx2));
+
+
+
+		float ty1 = (box.dynamicBox.min.y - start.y) / dir.y;
+		float ty2 = (box.dynamicBox.max.y - start.y) / dir.y;
+
+		tmin = max(tmin,min(ty1,ty2));
+		tmax = min(tmax,max(ty1,ty2));
+
+		float tz1 = (box.dynamicBox.min.z - start.z) / dir.z;
+		float tz2 = (box.dynamicBox.max.z - start.z) / dir.z;
+
+		tmin = max(tmin,min(tz1,tz2));
+		tmax = min(tmax,max(tz1,tz2));
+
+
+		if (tmax >= tmin){
+			if (ClosestIntersection(start,dir,box.myTriangles,boxIntersect)){
+				intersectFound = true;
+			}
+		}
+
+
+
+	}
+	return intersectFound;
+}
+
+vec3 DirectLight(const Intersection& i) {
+
+	float light2point = pow(i.position.x - lightPos.x, 2) + pow(i.position.y - lightPos.y, 2) + pow(i.position.z - lightPos.z, 2);
 	Intersection j;
-	j.distance = m;
+	j.distance = maxFloat;
 	vec3 d = glm::normalize(lightPos - i.position);
-	if (ClosestIntersection(i.position + d*vec3(0.00001,0.00001,0.00001), d, triangles,j)) {
+	vec3 start = (i.position + d*vec3(0.002f, 0.002f, 0.002f));
+	if (BoxIntersect(start, d, j)) {
 		//cout << "j: " << abs(j.distance) << " light2pos: " << sqrt(light2point) << endl;
 		if (abs(j.distance) < (sqrt(light2point))) {
 			return vec3(0.0, 0.0, 0.0);
 		}
 	}
-	float A = ( 4 * 3.14159 * light2point);
-	vec3 B = lightColor/A;
-	float r  = glm::dot(triangles[i.triangleIndex].normal, glm::normalize(lightPos-i.position));
-	vec3 D =  (r>0.0)? B*r: vec3(0,0,0);
+	float A = (4.0f * 3.14159f * light2point);
+	vec3 B = lightColor / A;
+	float r = glm::dot(triangles[i.triangleIndex].normal, glm::normalize(lightPos - i.position));
+	vec3 D = (r>0.0f) ? B*r : vec3(0.0f, 0.0f, 0.0f);
 	return D;
-}
-
-vec3 cartToSpherical(vec3 input, vec3 normal,vec3 tangent){
-	vec3 spherical(0,0,0);
-	float x = input.x;
-	float y = input.y;
-	float z = input.z;
-	float xn = normal.x;
-	float yn = normal.y;
-	float zn = normal.z;
-	float dot = x*xn + y*yn + z*zn;
-	float lenSq1 = xn*xn + yn*yn + zn*zn;
-	float lenSq2 = x*x + y*y + z*z;
-	float angle = acos(dot/sqrt(lenSq1 * lenSq2));
-	float tanSq = tangent.x*tangent.x + tangent.y*tangent.y + tangent.z*tangent.z;
-	float len3;
-	if (angle == 0) len3 = sqrt(lenSq2);
-	else len3 = sqrt(lenSq2)*cos((M_PI/2)-angle);
-	vec3 side4 = tangent - input;
-	float lenSq4 = side4.x*side4.x + side4.y*side4.y + side4.z*side4.z;
-	if (angle == 0) lenSq4 = sqrt(lenSq4);
-	else lenSq4 = sqrt(lenSq4)*cos((M_PI/2)-angle);
-	float val1 = (len3*len3) + tanSq - (lenSq4*lenSq4);
-	float val2 = (2*len3*sqrt(tanSq));
-	float cosvalue = val1/val2;
-
-	spherical.x = sqrt(x*x+y*y+z*z); //rho
-	spherical.y = angle;//acos(z/spherical.x); //theta
-	if (angle == 0) spherical.z = 0;
-	else spherical.z = acos(cosvalue); //phi
-	return spherical;
 }
 
 void Update()
@@ -168,29 +183,29 @@ void Update()
 
 	// Compute frame time:
 	int t2 = SDL_GetTicks();
-	float dt = float(t2-t);
+	float dt = float(t2 - t);
 	t = t2;
 	cout << "Render time: " << dt << " ms." << endl;
-	Uint8* keystate = SDL_GetKeyState( 0 );
-	if( keystate[SDLK_UP] )
+	Uint8* keystate = SDL_GetKeyState(0);
+	if (keystate[SDLK_UP])
 	{
 		cameraPos.y -= 0.1;
-	// Move camera forward
+		// Move camera forward
 	}
-	if( keystate[SDLK_DOWN] )
+	if (keystate[SDLK_DOWN])
 	{
 		cameraPos.y += 0.1;
-	// Move camera backward
+		// Move camera backward
 	}
-	if( keystate[SDLK_LEFT] )
+	if (keystate[SDLK_LEFT])
 	{
 		cameraPos.x -= 0.1;
-	// Move camera to the left
+		// Move camera to the left
 	}
-	if( keystate[SDLK_RIGHT] )
+	if (keystate[SDLK_RIGHT])
 	{
 		cameraPos.x += 0.1;
-	// Move camera to the right
+		// Move camera to the right
 	}
 	if (keystate[SDLK_w]) {
 		cameraPos.z += 0.1;
@@ -198,13 +213,13 @@ void Update()
 	if (keystate[SDLK_s]) {
 		cameraPos.z -= 0.1;
 	}
-	if( keystate[SDLK_a]){
+	if (keystate[SDLK_a]) {
 		yaw += 0.0174;
-		R = mat3(vec3(1,0,yaw),vec3(0,1,0),vec3(-yaw,0,1));
+		R = mat3(vec3(1, 0, yaw), vec3(0, 1, 0), vec3(-yaw, 0, 1));
 	}
-	if( keystate[SDLK_d]){
+	if (keystate[SDLK_d]) {
 		yaw -= 0.0174;
-		R = mat3(vec3(1,0,yaw),vec3(0,1,0),vec3(-yaw,0,1));
+		R = mat3(vec3(1, 0, yaw), vec3(0, 1, 0), vec3(-yaw, 0, 1));
 	}
 
 	if (keystate[SDLK_i]) {
@@ -219,70 +234,83 @@ void Update()
 	if (keystate[SDLK_l]) {
 		lightPos.x += 0.1;
 	}
-	if (keystate[SDLK_y]) {
-		lightPos.y -= 0.1;
-	}
-	if (keystate[SDLK_h]) {
-		lightPos.y += 0.1;
-	}
+
 }
 
 void Draw()
 {
 
-	if( SDL_MUSTLOCK(screen) )
+	if (SDL_MUSTLOCK(screen))
 		SDL_LockSurface(screen);
-	for( int y=0; y<SCREEN_HEIGHT; ++y )
+
+
+#pragma omp parallel for
+	for (int y = 0; y<SCREEN_HEIGHT; ++y)
 	{
-		for( int x=0; x<SCREEN_WIDTH; ++x )
+		for (int x = 0; x<SCREEN_WIDTH; ++x)
 		{
-			vec3 finalColor(0,0,0);
-			/*
-			for (float y2 = -0.5f; y2<0.5f;y2+=0.5f){
-				for (float x2 = -0.5f; x2<0.5f;x2+=0.5f){
-					vec3 color(0,0,0);
-					vec3 d(x+(x2)-SCREEN_WIDTH/2,y+(y2) - SCREEN_HEIGHT/2,focalLength);
-					d = R*glm::normalize(d);
+			vec3 finalColor(0.0f, 0.0f, 0.0f);
+			for (float y2 = -0.5f; y2<0.5f; y2 += 0.5f) {
+				for (float x2 = -0.5f; x2<0.5f; x2 += 0.5f) {
+					vec3 color(0, 0, 0);
+					vec3 d(x + (x2)-SCREEN_WIDTH / 2.0f, y + (y2)-SCREEN_HEIGHT / 2.0f, focalLength);
+					d = R*d;
 
 					Intersection closestIntersection;
-					closestIntersection.distance = m;
-					closestIntersection.triangleIndex= -1;
-					if (ClosestIntersection(cameraPos,d,triangles,closestIntersection)){
+					closestIntersection.distance = maxFloat;
+					closestIntersection.triangleIndex = -1;
+						if (BoxIntersect(cameraPos, d, closestIntersection)) {
+						cout << "INTERSECTED\n";
 						color = triangles[closestIntersection.triangleIndex].color*(indirectLight + DirectLight(closestIntersection)*triangles[closestIntersection.triangleIndex].color);
 					}
+					if(x2 == 0.0f && y2 == 0.0f)maskBuffer[y][x] = closestIntersection.distance * 1000;
 					finalColor = finalColor + color;
 				}
 			}
-			*/
-			vec3 d(x+-SCREEN_WIDTH/2,y+ - SCREEN_HEIGHT/2,focalLength);
-			d = R*d;
 
-			Intersection closestIntersection;
-			closestIntersection.distance = m;
-			closestIntersection.triangleIndex= -1;
+			finalColor = finalColor*(1.0f / 9.0f);
 
-			if (ClosestIntersection(cameraPos,d,triangles,closestIntersection)){
-				finalColor = triangles[closestIntersection.triangleIndex].color*(indirectLight + DirectLight(closestIntersection));
-				vec3 triangleTangent = glm::normalize(triangles[closestIntersection.triangleIndex].v0 - triangles[closestIntersection.triangleIndex].v1);
-				vec3 dCamera = glm::normalize(cameraPos - closestIntersection.position);
-				vec3 dSpher = cartToSpherical(dCamera,triangles[closestIntersection.triangleIndex].normal,triangleTangent); //point to camera spherical coords
-				vec3 dLight = glm::normalize(lightPos - closestIntersection.position);
-				vec3 dlSpher = cartToSpherical(dLight,triangles[closestIntersection.triangleIndex].normal,triangleTangent); //point to light spherical coords
-				double red,green,blue;
-				cout << dlSpher.y << "," << dlSpher.z << " :: " << dSpher.y << "," << dSpher.z << "\n";
-				lookup_brdf_val(brdf,dlSpher.y,dlSpher.z,dSpher.y,dSpher.z,red,green,blue);
-				finalColor.x = (float)red;
-				finalColor.y = (float)green;
-				finalColor.z = (float)blue;
+			PutPixelSDL(screen, x, y, finalColor);
+		}
+	}
+	//postBlur();
+
+
+
+	if (SDL_MUSTLOCK(screen))
+		SDL_UnlockSurface(screen);
+
+	SDL_UpdateRect(screen, 0, 0, 0, 0);
+}
+
+void postBlur() {
+#pragma omp parallel for
+	for (int y = 0; y < SCREEN_HEIGHT; ++y)
+	{
+		for (int x = 0; x < SCREEN_WIDTH; ++x)
+		{
+			float dist = abs(maskBuffer[y][x] -focusPoint);
+			if (dist < 1.0f || dist > 500.0f) PutPixelSDL(screen, x, y, frameBuffer[y][x]);
+			else {
+				float boxr = roundf(powf(blurExp, dist));
+				if (boxr > SCREEN_HEIGHT) boxr = SCREEN_HEIGHT;
+				int i = 0;
+				vec3 currColor = vec3(0.0f, 0.0f, 0.0f);
+
+				int yr = (y - boxr < 0) ? 0 : y - boxr;
+				int xr = (x - boxr < 0) ? 0 : x - boxr;
+				int stopy = (y + boxr < SCREEN_HEIGHT-1) ? y + boxr : SCREEN_HEIGHT-1;
+				int stopx = (x + boxr < SCREEN_WIDTH-1) ? x + boxr : SCREEN_WIDTH-1;
+				for (yr; yr <= stopy; yr++) {
+					for (xr; xr <= stopx; xr++) {
+						currColor += frameBuffer[yr][xr];
+						i++;
+					}
+				}
+				currColor = currColor / ((float)i);
+				PutPixelSDL(screen, x, y, currColor);
 			}
-
-
-			PutPixelSDL( screen, x, y, finalColor );
 		}
 	}
 
-	if( SDL_MUSTLOCK(screen) )
-		SDL_UnlockSurface(screen);
-
-	SDL_UpdateRect( screen, 0, 0, 0, 0 );
 }
