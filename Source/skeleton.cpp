@@ -54,6 +54,9 @@ vec3 frameBuffer[SCREEN_HEIGHT][SCREEN_WIDTH];
 float maskBuffer[SCREEN_HEIGHT][SCREEN_WIDTH];
 float focusPoint = 4.0f;
 float blurExp = 1.1f;
+float Kd = 0.8;
+float Ks = 0.1;
+float specularExponent = 10;
 
 /* ----------------------------------------------------------------------------*/
 /* FUNCTIONS                                                                   */
@@ -115,8 +118,7 @@ vec3 DirectLight(const Intersection& i) {
 	Intersection j;
 	j.distance = maxFloat;
 	vec3 d = glm::normalize(lightPos - i.position);
-	if (ClosestIntersection(i.position + d*vec3(0.002, 0.002, 0.002), d, triangles, j)) {
-		//cout << "j: " << abs(j.distance) << " light2pos: " << sqrt(light2point) << endl;
+	if (ClosestIntersection(i.position + d*vec3(0.002f, 0.002f, 0.002f), d, triangles, j)) {
 		if (abs(j.distance) < (sqrt(light2point))) {
 			return vec3(0.0, 0.0, 0.0);
 		}
@@ -186,6 +188,28 @@ void Update()
 	}
 }
 
+vec3 phongShading(Intersection& i,Triangle& triangle, const vector<Triangle>&triangles) {
+
+	Intersection j;
+	j.distance = maxFloat;
+	vec3 direction2light = glm::normalize(lightPos - i.position);
+	float disLp = sqrt(glm::dot((lightPos - i.position), (lightPos - i.position)));
+	
+
+	if (ClosestIntersection(i.position + direction2light*vec3(0.002f, 0.002f, 0.002f), direction2light, triangles, j)) {
+		if (abs(j.distance) < (sqrt(disLp))) {
+			return triangle.ambient;
+		}
+	}
+	vec3 normal = glm::normalize(triangle.normal);
+	vec3 viewDirection = glm::normalize(cameraPos - i.position);
+	vec3 R = 2.0f * glm::dot(normal, direction2light) * normal - direction2light;
+	float x = glm::dot(viewDirection, R);
+	vec3 specular = pow(x, specularExponent) *triangle.specular;
+	vec3 diffuse = triangle.diffuse * glm::dot(normal, direction2light);
+	return lightColor* (specular*Ks + diffuse*Kd) +triangle.ambient;
+	
+}
 void Draw()
 {
 
@@ -209,7 +233,14 @@ void Draw()
 					closestIntersection.distance = maxFloat;
 					closestIntersection.triangleIndex = -1;
 					if (ClosestIntersection(cameraPos, d, triangles, closestIntersection)) {
-						color = triangles[closestIntersection.triangleIndex].color*(indirectLight + DirectLight(closestIntersection)*triangles[closestIntersection.triangleIndex].color);
+						// PHONG SHADING SHIT
+						Triangle t = triangles[closestIntersection.triangleIndex];
+						if (t.specular == vec3(0.0f, 0.0f, 0.0f)) {
+							color = triangles[closestIntersection.triangleIndex].color*(indirectLight + DirectLight(closestIntersection));
+						}
+						else {
+							color = phongShading(closestIntersection, triangles[closestIntersection.triangleIndex], triangles);
+						}
 					}
 					if(x2 == 0.0f && y2 == 0.0f)maskBuffer[y][x] = closestIntersection.distance * 1000;
 					finalColor = finalColor + color;
@@ -227,6 +258,7 @@ void Draw()
 	SDL_UpdateRect(screen, 0, 0, 0, 0);
 }
 
+
 void postBlur() {
 #pragma omp parallel for
 	for (int y = 0; y < SCREEN_HEIGHT; ++y)
@@ -234,7 +266,7 @@ void postBlur() {
 		for (int x = 0; x < SCREEN_WIDTH; ++x)
 		{
 			float dist = abs(maskBuffer[y][x] -focusPoint);
-			if (dist < 1 ) PutPixelSDL(screen, x, y, frameBuffer[y][x]);
+			if (dist < 1 || dist > 100) PutPixelSDL(screen, x, y, frameBuffer[y][x]);
 			else {
 				float boxr = roundf(powf(blurExp, dist));
 				if (boxr > SCREEN_HEIGHT) boxr = SCREEN_HEIGHT;

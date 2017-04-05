@@ -15,10 +15,21 @@ public:
 	glm::vec3 v2;
 	glm::vec3 normal;
 	glm::vec3 color;
+	glm::vec3 ambient;
+	glm::vec3 diffuse;
+	glm::vec3 specular;
 
 	Triangle( glm::vec3 v0, glm::vec3 v1, glm::vec3 v2, glm::vec3 color )
 		: v0(v0), v1(v1), v2(v2), color(color)
 	{
+		ComputeNormal();
+		specular = glm::vec3(0.0f, 0.0f, 0.0f);
+		ambient = glm::vec3(0.0f, 0.0f, 0.0f);
+		diffuse = glm::vec3(0.0f, 0.0f, 0.0f);
+	}
+
+	Triangle(glm::vec3 v0, glm::vec3 v1, glm::vec3 v2, glm::vec3 color, glm::vec3 ambient, glm::vec3 diffuse, glm::vec3 specular)
+	: v0(v0), v1(v1), v2(v2), color(color), ambient(ambient), diffuse(diffuse), specular(specular){
 		ComputeNormal();
 	}
 
@@ -98,25 +109,29 @@ void LoadTestModel( std::vector<Triangle>& triangles )
 	G = vec3(240,165,272);
 	H = vec3( 82,165,225);
 
-	// Front
-	triangles.push_back( Triangle(E,B,A,red) );
-	triangles.push_back( Triangle(E,F,B,red) );
+	vec3 tspecular = vec3(0.4f, 0.1f, 0.1f);
+	vec3 tdiffuse = vec3(0.2f, 0.05f, 0.05f);
+	vec3 tambient = vec3(0.9f, 0.01f, 0.01f);
 
 	// Front
-	triangles.push_back( Triangle(F,D,B,red) );
-	triangles.push_back( Triangle(F,H,D,red) );
+	triangles.push_back( Triangle(E,B,A,red, tambient, tdiffuse,tspecular) );
+	triangles.push_back( Triangle(E,F,B,red, tambient, tdiffuse, tspecular) );
+
+	// Front
+	triangles.push_back( Triangle(F,D,B,red, tambient, tdiffuse, tspecular) );
+	triangles.push_back( Triangle(F,H,D,red, tambient, tdiffuse, tspecular) );
 
 	// BACK
-	triangles.push_back( Triangle(H,C,D,red) );
-	triangles.push_back( Triangle(H,G,C,red) );
+	triangles.push_back( Triangle(H,C,D,red, tambient, tdiffuse, tspecular) );
+	triangles.push_back( Triangle(H,G,C,red, tambient, tdiffuse, tspecular) );
 
 	// LEFT
-	triangles.push_back( Triangle(G,E,C,red) );
-	triangles.push_back( Triangle(E,A,C,red) );
+	triangles.push_back( Triangle(G,E,C,red, tambient, tdiffuse, tspecular) );
+	triangles.push_back( Triangle(E,A,C,red, tambient, tdiffuse, tspecular) );
 
 	// TOP
-	triangles.push_back( Triangle(G,F,E,red) );
-	triangles.push_back( Triangle(G,H,F,red) );
+	triangles.push_back( Triangle(G,F,E,red, tambient, tdiffuse, tspecular) );
+	triangles.push_back( Triangle(G,H,F,red, tambient, tdiffuse, tspecular) );
 
 	// ---------------------------------------------------------------------------
 	// Tall block
