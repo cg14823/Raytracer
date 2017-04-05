@@ -234,7 +234,7 @@ vec3 blingShadding(Intersection& i, Triangle& triangle, const vector<Triangle>&t
 
 	if (ClosestIntersection(i.position + direction2light*vec3(0.002f, 0.002f, 0.002f), direction2light, triangles, j)) {
 		if (abs(j.distance) < (sqrt(disLp))) {
-			return triangle.ambient;
+			return indirectLight* triangle.ambient;
 		}
 	}
 
@@ -249,7 +249,7 @@ vec3 blingShadding(Intersection& i, Triangle& triangle, const vector<Triangle>&t
 	float sl = 1.0f;
 	float sq = 1.0f;
 
-	vec3 ligth = triangle.ambient + (lightColor*(specular + diffuse)) / (sc + sl*disLp + sq * disLp*disLp);
+	vec3 ligth = indirectLight* triangle.ambient + (lightColor*(specular + diffuse)) / (sc + sl*disLp + sq * disLp*disLp);
 
 	return ligth;
 }

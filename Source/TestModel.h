@@ -111,7 +111,7 @@ void LoadTestModel( std::vector<Triangle>& triangles )
 
 	vec3 tspecular = vec3(0.7f, 0.1f, 0.1f);
 	vec3 tdiffuse = vec3(0.4f, 0.05f, 0.05f);
-	vec3 tambient = vec3(0.3f, 0.01f, 0.01f);
+	vec3 tambient = vec3(1.0f, 0.1f, 0.1f);
 
 	// Front
 	triangles.push_back( Triangle(E,B,A,red, tambient, tdiffuse,tspecular) );
