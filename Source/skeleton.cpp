@@ -188,6 +188,11 @@ void Update()
 	}
 }
 
+float max(float x, float y) {
+	if (x > y) return x;
+	else return y;
+}
+
 vec3 phongShading(Intersection& i,Triangle& triangle, const vector<Triangle>&triangles) {
 
 	Intersection j;
@@ -201,15 +206,25 @@ vec3 phongShading(Intersection& i,Triangle& triangle, const vector<Triangle>&tri
 			return triangle.ambient;
 		}
 	}
+
 	vec3 normal = glm::normalize(triangle.normal);
 	vec3 viewDirection = glm::normalize(cameraPos - i.position);
 	vec3 R = 2.0f * glm::dot(normal, direction2light) * normal - direction2light;
 	float x = glm::dot(viewDirection, R);
-	vec3 specular = pow(x, specularExponent) *triangle.specular;
-	vec3 diffuse = triangle.diffuse * glm::dot(normal, direction2light);
-	return lightColor* (specular*Ks + diffuse*Kd) +triangle.ambient;
+	vec3 specular = pow(max(x,0), specularExponent) *triangle.specular;
+	vec3 diffuse = max(glm::dot(normal, direction2light), 0)* triangle.diffuse;
+	float A = (4.0f * 3.14159f * disLp);
+	float sc = 1.0f;
+	float sl = 1.0f;
+	float sq = 1.0f;
+
+	vec3 ligth = triangle.ambient + (lightColor*(specular + diffuse)) / (sc +sl*disLp + sq * disLp*disLp);
+
+	return ligth;
 	
 }
+
+
 void Draw()
 {
 
