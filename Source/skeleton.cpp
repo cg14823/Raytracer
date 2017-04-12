@@ -43,9 +43,7 @@ float yaw = 0;
 mat3 R;
 
 
-vec3 lightPos(0, -0.5, -0.7);
-vec3 lightColor = 40.f * vec3(1, 1, 1);
-vec3 indirectLight = 0.4f*vec3(1, 1, 1);
+
 
 vec3 p(0.85, 0.85, 0.85);
 
@@ -54,9 +52,20 @@ vec3 frameBuffer[SCREEN_HEIGHT][SCREEN_WIDTH];
 float maskBuffer[SCREEN_HEIGHT][SCREEN_WIDTH];
 float focusPoint = 4.0f;
 float blurExp = 1.1f;
+
+// Light parameters
 float Kd = 0.8;
 float Ks = 0.1;
 float specularExponent = 10;
+
+float sc = 1.0f;
+float sl = 1.0f;
+float sq = 1.0f;
+
+vec3 lightPos(0, -0.5, -0.7);
+vec3 lightS = 20.f * vec3(1, 1, 1);
+vec3 lightD = 10.f * vec3(1, 1, 1);
+vec3 indirectLight = 1.0f*vec3(1, 1, 1);
 
 /* ----------------------------------------------------------------------------*/
 /* FUNCTIONS                                                                   */
@@ -124,7 +133,7 @@ vec3 DirectLight(const Intersection& i) {
 		}
 	}
 	float A = (4.0f * 3.14159f * light2point);
-	vec3 B = lightColor / A;
+	vec3 B = lightS / A;
 	float r = glm::dot(triangles[i.triangleIndex].normal, glm::normalize(lightPos - i.position));
 	vec3 D = (r>0.0f) ? B*r : vec3(0.0f, 0.0f, 0.0f);
 	return D;
@@ -203,7 +212,7 @@ vec3 phongShading(Intersection& i,Triangle& triangle, const vector<Triangle>&tri
 
 	if (ClosestIntersection(i.position + direction2light*vec3(0.002f, 0.002f, 0.002f), direction2light, triangles, j)) {
 		if (abs(j.distance) < (sqrt(disLp))) {
-			return triangle.ambient;
+			return indirectLight* triangle.ambient;
 		}
 	}
 
@@ -214,11 +223,9 @@ vec3 phongShading(Intersection& i,Triangle& triangle, const vector<Triangle>&tri
 	vec3 specular = pow(max(x,0), specularExponent) *triangle.specular;
 	vec3 diffuse = max(glm::dot(normal, direction2light), 0)* triangle.diffuse;
 	float A = (4.0f * 3.14159f * disLp);
-	float sc = 1.0f;
-	float sl = 1.0f;
-	float sq = 1.0f;
 
-	vec3 ligth = triangle.ambient + (lightColor*(specular + diffuse)) / (sc +sl*disLp + sq * disLp*disLp);
+
+	vec3 ligth = indirectLight*triangle.ambient + (lightS*specular + lightD*diffuse) / (sc +sl*disLp + sq * disLp*disLp);
 
 	return ligth;
 	
@@ -245,11 +252,8 @@ vec3 blingShadding(Intersection& i, Triangle& triangle, const vector<Triangle>&t
 	vec3 specular = pow(max(x, 0), specularExponent) *triangle.specular;
 	vec3 diffuse = max(glm::dot(normal, direction2light), 0)* triangle.diffuse;
 	float A = (4.0f * 3.14159f * disLp);
-	float sc = 1.0f;
-	float sl = 1.0f;
-	float sq = 1.0f;
 
-	vec3 ligth = indirectLight* triangle.ambient + (lightColor*(specular + diffuse)) / (sc + sl*disLp + sq * disLp*disLp);
+	vec3 ligth = indirectLight*triangle.ambient + (lightS*specular + lightD*diffuse) / (sc + sl*disLp + sq * disLp*disLp);
 
 	return ligth;
 }
@@ -277,14 +281,7 @@ void Draw()
 					closestIntersection.distance = maxFloat;
 					closestIntersection.triangleIndex = -1;
 					if (ClosestIntersection(cameraPos, d, triangles, closestIntersection)) {
-						// PHONG SHADING SHIT
-						Triangle t = triangles[closestIntersection.triangleIndex];
-						if (t.specular == vec3(0.0f, 0.0f, 0.0f)) {
-							color = triangles[closestIntersection.triangleIndex].color*(indirectLight + DirectLight(closestIntersection));
-						}
-						else {
-							color = blingShadding(closestIntersection, triangles[closestIntersection.triangleIndex], triangles);
-						}
+						color = blingShadding(closestIntersection, triangles[closestIntersection.triangleIndex], triangles);
 					}
 					if(x2 == 0.0f && y2 == 0.0f)maskBuffer[y][x] = closestIntersection.distance * 1000;
 					finalColor = finalColor + color;
