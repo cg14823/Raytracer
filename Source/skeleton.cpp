@@ -312,14 +312,12 @@ void Draw()
 					if (ClosestIntersection(cameraPos, d, triangles, closestIntersection)) {
 						color1 = blingShadding(closestIntersection, triangles[closestIntersection.triangleIndex], triangles);
 						vec3 bounceD = reflectD(d, triangles[closestIntersection.triangleIndex].normal);
-						//vec3 newpos = closestIntersection.position - bounceD*vec3(0.002f, 0.002f, 0.002f);
 						Intersection closestIntersection2;
 						closestIntersection2.distance = maxFloat;
 						closestIntersection2.triangleIndex = -1;
 						if (ClosestIntersection2(closestIntersection.position + bounceD*vec3(0.00000002f, 0.00000002f, 0.00000002f), bounceD, triangles, closestIntersection2, closestIntersection)) {
 							color2 = blingShadding(closestIntersection2, triangles[closestIntersection2.triangleIndex], triangles);
 						}
-
 					}
 					if(x2 == 0.0f && y2 == 0.0f)maskBuffer[y][x] = closestIntersection.distance * 1000;
 					finalColor = finalColor + color1 +color2*triangles[closestIntersection.triangleIndex].reflectance;
