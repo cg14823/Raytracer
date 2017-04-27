@@ -51,21 +51,21 @@ float maxFloat = std::numeric_limits<float>::max();
 vec3 frameBuffer[SCREEN_HEIGHT][SCREEN_WIDTH];
 float maskBuffer[SCREEN_HEIGHT][SCREEN_WIDTH];
 float focusPoint = 4.0f;
-float blurExp = 1.1f;
+float blurExp = 1.0f;
 
 // Light parameters
 float Kd = 0.8;
-float Ks = 0.1;
-float specularExponent = 10;
+float Ks = 0.2;
+float specularExponent = 15;
 
 float sc = 1.0f;
-float sl = 1.0f;
+float sl = 0.8f;
 float sq = 1.0f;
 
 vec3 lightPos(0, -0.5, -0.7);
-vec3 lightS = 20.f * vec3(1, 1, 1);
-vec3 lightD = 10.f * vec3(1, 1, 1);
-vec3 indirectLight = 1.0f*vec3(1, 1, 1);
+vec3 lightS = 10.f * vec3(1, 1, 1);
+vec3 lightD = 5.0f * vec3(1, 1, 1);
+vec3 indirectLight = 0.7f*vec3(1, 1, 1);
 
 /* ----------------------------------------------------------------------------*/
 /* FUNCTIONS                                                                   */
@@ -270,6 +270,7 @@ void Draw()
 	{
 		for (int x = 0; x<SCREEN_WIDTH; ++x)
 		{
+			float hits = 1.0;
 			vec3 finalColor(0.0f, 0.0f, 0.0f);
 			for (float y2 = -0.5f; y2<0.5f; y2 += 0.5f) {
 				for (float x2 = -0.5f; x2<0.5f; x2 += 0.5f) {
@@ -282,16 +283,18 @@ void Draw()
 					closestIntersection.triangleIndex = -1;
 					if (ClosestIntersection(cameraPos, d, triangles, closestIntersection)) {
 						color = blingShadding(closestIntersection, triangles[closestIntersection.triangleIndex], triangles);
+						hits++;
 					}
 					if(x2 == 0.0f && y2 == 0.0f)maskBuffer[y][x] = closestIntersection.distance * 1000;
 					finalColor = finalColor + color;
+					
 				}
 			}
 
-			frameBuffer[y][x] = finalColor*(1.0f / 9.0f);
+			finalColor = finalColor*(1.0f / hits);
+			PutPixelSDL(screen, x, y, finalColor);
 		}
 	}
-	postBlur();
 
 	if (SDL_MUSTLOCK(screen))
 		SDL_UnlockSurface(screen);
