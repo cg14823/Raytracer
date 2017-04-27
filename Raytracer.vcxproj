@@ -111,7 +111,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
-      <AdditionalIncludeDirectories>C:\Users\Tom\Documents\Uni\CG\Rasterizer\includes;C:\Users\Tom\Documents\Uni\CG\Raytracer\includes\glm;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)\includes;$(SolutionDir)\includes\glm;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <Optimization>MaxSpeed</Optimization>
       <WarningLevel>TurnOffAllWarnings</WarningLevel>
       <BasicRuntimeChecks>Default</BasicRuntimeChecks>
@@ -119,21 +119,21 @@
       <OpenMPSupport>true</OpenMPSupport>
     </ClCompile>
     <Link>
-      <AdditionalOptions>C:\Users\Tom\Documents\Uni\CG\Raytracer\libs64\SDL.lib C:\Users\Tom\Documents\Uni\CG\Raytracer\libs64\SDLmain.lib %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>$(SolutionDir)\libs64\SDL.lib $(SolutionDir)\libs64\SDLmain.lib %(AdditionalOptions)</AdditionalOptions>
       <AdditionalDependencies>legacy_stdio_definitions.lib.;%(AdditionalDependencies)</AdditionalDependencies>
       <SubSystem>Console</SubSystem>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
-      <AdditionalIncludeDirectories>C:\Users\Tom\Documents\Uni\CG\Rasterizer\includes;C:\Users\Tom\Documents\Uni\CG\Raytracer\includes\glm;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)\includes;$(SolutionDir)\includes\glm;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <Optimization>MaxSpeed</Optimization>
       <WarningLevel>TurnOffAllWarnings</WarningLevel>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <OpenMPSupport>true</OpenMPSupport>
     </ClCompile>
     <Link>
-      <AdditionalOptions>C:\Users\Tom\Documents\Uni\CG\Raytracer\libs64\SDL.lib C:\Users\Tom\Documents\Uni\CG\Raytracer\libs64\SDLmain.lib %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>$(SolutionDir)\libs64\SDL.lib $(SolutionDir)\libs64\SDLmain.lib %(AdditionalOptions)</AdditionalOptions>
       <AdditionalDependencies>legacy_stdio_definitions.lib.;%(AdditionalDependencies)</AdditionalDependencies>
       <SubSystem>Console</SubSystem>
     </Link>

@@ -36,6 +36,7 @@ SDL_Surface* screen;
 int t;
 vector<Triangle> triangles;
 
+bool fiftyPercent = true;
 
 float focalLength = SCREEN_HEIGHT;
 vec3 cameraPos(0, 0, -3); // Down and Left +
@@ -63,9 +64,13 @@ float sl = 1.0f;
 float sq = 1.0f;
 
 vec3 lightPos(0, -0.5, -0.7);
-vec3 lightS = 20.f * vec3(1, 1, 1);
-vec3 lightD = 10.f * vec3(1, 1, 1);
-vec3 indirectLight = 1.0f*vec3(1, 1, 1);
+vec3 lightColor = 20.f * vec3(1, 1, 1);
+vec3 indirectLight2 = 0.2f*vec3(1, 1, 1);
+vec3 lightS = 8.f * vec3(1, 1, 1);
+vec3 lightD = 4.f * vec3(1, 1, 1);
+vec3 indirectLight = 0.5f*vec3(1, 1, 1);
+
+float m = std::numeric_limits<float>::max();
 
 /* ----------------------------------------------------------------------------*/
 /* FUNCTIONS                                                                   */
@@ -80,6 +85,7 @@ struct Intersection
 void postBlur();
 void Update();
 void Draw();
+void DrawFiftyPercent();
 bool ClosestIntersection(vec3& start,vec3& dir, const vector<Triangle>& triangles, Intersection& closestIntersection);
 vec3 DirectLight(const Intersection& i);
 
@@ -91,7 +97,8 @@ int main(int argc, char* argv[])
 	while (NoQuitMessageSDL())
 	{
 		Update();
-		Draw();
+		if (fiftyPercent) DrawFiftyPercent();
+		else Draw();
 	}
 
 	SDL_SaveBMP(screen, "screenshot.bmp");
@@ -161,7 +168,9 @@ vec3 DirectLight(const Intersection& i) {
 		}
 	}
 	float A = (4.0f * 3.14159f * light2point);
-	vec3 B = lightS / A;
+	vec3 B;
+	if (fiftyPercent) B = lightColor / A;
+	else B = lightS / A;
 	float r = glm::dot(triangles[i.triangleIndex].normal, glm::normalize(lightPos - i.position));
 	vec3 D = (r>0.0f) ? B*r : vec3(0.0f, 0.0f, 0.0f);
 	return D;
@@ -176,6 +185,14 @@ void Update()
 	t = t2;
 	cout << "Render time: " << dt << " ms." << endl;
 	Uint8* keystate = SDL_GetKeyState(0);
+	if (keystate[SDLK_1])
+	{
+		fiftyPercent = true;
+	}
+	if (keystate[SDLK_2])
+	{
+		fiftyPercent = false;
+	}
 	if (keystate[SDLK_UP])
 	{
 		cameraPos.y -= 0.1;
@@ -286,6 +303,34 @@ vec3 blingShadding(Intersection& i, Triangle& triangle, const vector<Triangle>&t
 	return ligth;
 }
 
+void DrawFiftyPercent() {
+	if (SDL_MUSTLOCK(screen))
+		SDL_LockSurface(screen);
+	for (int y = 0; y<SCREEN_HEIGHT; ++y)
+	{
+		for (int x = 0; x<SCREEN_WIDTH; ++x)
+		{
+			vec3 color(0, 0, 0);
+			vec3 d(x - SCREEN_WIDTH / 2, y - SCREEN_HEIGHT / 2, focalLength);
+			d = R*d;
+			Intersection closestIntersection;
+			closestIntersection.distance = m;
+			closestIntersection.triangleIndex = -1;
+			if (ClosestIntersection(cameraPos, d, triangles, closestIntersection)) {
+
+				color = triangles[closestIntersection.triangleIndex].color*(indirectLight + DirectLight(closestIntersection)*triangles[closestIntersection.triangleIndex].color);
+			}
+
+			PutPixelSDL(screen, x, y, color);
+		}
+	}
+
+	if (SDL_MUSTLOCK(screen))
+		SDL_UnlockSurface(screen);
+
+	SDL_UpdateRect(screen, 0, 0, 0, 0);
+}
+
 void Draw()
 {
 
@@ -298,6 +343,7 @@ void Draw()
 	{
 		for (int x = 0; x<SCREEN_WIDTH; ++x)
 		{
+			int hits = 1;
 			vec3 finalColor(0.0f, 0.0f, 0.0f);
 			for (float y2 = -0.5f; y2<0.5f; y2 += 0.5f) {
 				for (float x2 = -0.5f; x2<0.5f; x2 += 0.5f) {
@@ -318,13 +364,14 @@ void Draw()
 						if (ClosestIntersection2(closestIntersection.position + bounceD*vec3(0.00000002f, 0.00000002f, 0.00000002f), bounceD, triangles, closestIntersection2, closestIntersection)) {
 							color2 = blingShadding(closestIntersection2, triangles[closestIntersection2.triangleIndex], triangles);
 						}
+						hits++;
 					}
 					if(x2 == 0.0f && y2 == 0.0f)maskBuffer[y][x] = closestIntersection.distance * 1000;
 					finalColor = finalColor + color1 +color2*triangles[closestIntersection.triangleIndex].reflectance;
 				}
 			}
 
-			frameBuffer[y][x] = finalColor*(1.0f / 9.0f);
+			frameBuffer[y][x] = finalColor*(1.0f / hits);
 		}
 	}
 	postBlur();
