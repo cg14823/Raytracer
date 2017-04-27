@@ -231,8 +231,8 @@ void Update()
 		useAA = true;
 		useBlur = true;
 		useReflect = true;
-		if (keystate[SDLK_LCTRL]) usePhong = false;
-		else usePhong = true;
+		if (keystate[SDLK_LCTRL]) usePhong = true;
+		else usePhong = false;
 	}
 	if (keystate[SDLK_UP])
 	{
