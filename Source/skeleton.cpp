@@ -24,6 +24,13 @@ k : light back
 j : light left
 l : light right
 
+1: Fifty Percent Version
+2: Turn on AA					LCtrl+2: Turn off AA
+3: Use Phong					LCtrl+3: Use Blinn
+4: Turn on Blur					LCtrl+4: Turn off Blur
+5: Turn on Reflections			LCtrl+5: Turn off Reflections
+6: Turn on All and use Blinn	LCtrl+6: Turn on All and use Phong
+
 
 */
 
@@ -37,6 +44,10 @@ int t;
 vector<Triangle> triangles;
 
 bool fiftyPercent = true;
+bool usePhong = false;
+bool useBlur = false;
+bool useAA = false;
+bool useReflect = false;
 
 float focalLength = SCREEN_HEIGHT;
 vec3 cameraPos(0, 0, -3); // Down and Left +
@@ -86,6 +97,7 @@ void postBlur();
 void Update();
 void Draw();
 void DrawFiftyPercent();
+void DrawWithoutAA();
 bool ClosestIntersection(vec3& start,vec3& dir, const vector<Triangle>& triangles, Intersection& closestIntersection);
 vec3 DirectLight(const Intersection& i);
 
@@ -98,7 +110,8 @@ int main(int argc, char* argv[])
 	{
 		Update();
 		if (fiftyPercent) DrawFiftyPercent();
-		else Draw();
+		else if (useAA) Draw();
+		else DrawWithoutAA();
 	}
 
 	SDL_SaveBMP(screen, "screenshot.bmp");
@@ -191,7 +204,35 @@ void Update()
 	}
 	if (keystate[SDLK_2])
 	{
+		if (keystate[SDLK_LCTRL]) useAA = false;
+		else useAA = true;
 		fiftyPercent = false;
+	}
+	if (keystate[SDLK_3])
+	{
+		if (keystate[SDLK_LCTRL]) usePhong = false;
+		else usePhong = true;
+		fiftyPercent = false;
+	}
+	if (keystate[SDLK_4])
+	{
+		if (keystate[SDLK_LCTRL]) useBlur = false;
+		else useBlur = true;
+		fiftyPercent = false;
+	}
+	if (keystate[SDLK_5])
+	{
+		if (keystate[SDLK_LCTRL]) useReflect = false;
+		else useReflect = true;
+		fiftyPercent = false;
+	}
+	if (keystate[SDLK_6]) {
+		fiftyPercent = false;
+		useAA = true;
+		useBlur = true;
+		useReflect = true;
+		if (keystate[SDLK_LCTRL]) usePhong = false;
+		else usePhong = true;
 	}
 	if (keystate[SDLK_UP])
 	{
@@ -356,25 +397,80 @@ void Draw()
 					closestIntersection.distance = maxFloat;
 					closestIntersection.triangleIndex = -1;
 					if (ClosestIntersection(cameraPos, d, triangles, closestIntersection)) {
-						color1 = blingShadding(closestIntersection, triangles[closestIntersection.triangleIndex], triangles);
-						vec3 bounceD = reflectD(d, triangles[closestIntersection.triangleIndex].normal);
-						Intersection closestIntersection2;
-						closestIntersection2.distance = maxFloat;
-						closestIntersection2.triangleIndex = -1;
-						if (ClosestIntersection2(closestIntersection.position + bounceD*vec3(0.00000002f, 0.00000002f, 0.00000002f), bounceD, triangles, closestIntersection2, closestIntersection)) {
-							color2 = blingShadding(closestIntersection2, triangles[closestIntersection2.triangleIndex], triangles);
+						if (usePhong) color1 = phongShading(closestIntersection, triangles[closestIntersection.triangleIndex], triangles);
+						else color1 = blingShadding(closestIntersection, triangles[closestIntersection.triangleIndex], triangles);
+						if (useReflect) {
+							vec3 bounceD = reflectD(d, triangles[closestIntersection.triangleIndex].normal);
+							Intersection closestIntersection2;
+							closestIntersection2.distance = maxFloat;
+							closestIntersection2.triangleIndex = -1;
+							if (ClosestIntersection2(closestIntersection.position + bounceD*vec3(0.00000002f, 0.00000002f, 0.00000002f), bounceD, triangles, closestIntersection2, closestIntersection)) {
+								if (usePhong) color2 = phongShading(closestIntersection2, triangles[closestIntersection2.triangleIndex], triangles);
+								else color2 = blingShadding(closestIntersection2, triangles[closestIntersection2.triangleIndex], triangles);
+							}
 						}
 						hits++;
 					}
 					if(x2 == 0.0f && y2 == 0.0f)maskBuffer[y][x] = closestIntersection.distance * 1000;
-					finalColor = finalColor + color1 +color2*triangles[closestIntersection.triangleIndex].reflectance;
+					if (useReflect) finalColor = finalColor + color1 + color2*triangles[closestIntersection.triangleIndex].reflectance;
+					else finalColor = finalColor + color1;
+					
 				}
 			}
-
-			frameBuffer[y][x] = finalColor*(1.0f / hits);
+			if (useBlur) frameBuffer[y][x] = finalColor*(1.0f / hits);
+			else PutPixelSDL(screen, x, y, finalColor*(1.0f / hits));
 		}
 	}
-	postBlur();
+	if (useBlur) postBlur();
+
+	if (SDL_MUSTLOCK(screen))
+		SDL_UnlockSurface(screen);
+
+	SDL_UpdateRect(screen, 0, 0, 0, 0);
+}
+
+void DrawWithoutAA()
+{
+
+	if (SDL_MUSTLOCK(screen))
+		SDL_LockSurface(screen);
+
+
+#pragma omp parallel for
+	for (int y = 0; y<SCREEN_HEIGHT; ++y)
+	{
+		for (int x = 0; x<SCREEN_WIDTH; ++x)
+		{
+			vec3 finalColor(0.0f, 0.0f, 0.0f);
+			vec3 color1(0, 0, 0);
+			vec3 color2(0, 0, 0);
+			vec3 d(x - SCREEN_WIDTH / 2, y - SCREEN_HEIGHT / 2, focalLength);
+			d = R*d;
+
+			Intersection closestIntersection;
+			closestIntersection.distance = maxFloat;
+			closestIntersection.triangleIndex = -1;
+			if (ClosestIntersection(cameraPos, d, triangles, closestIntersection)) {
+				if (usePhong) color1 = phongShading(closestIntersection, triangles[closestIntersection.triangleIndex], triangles);
+				else color1 = blingShadding(closestIntersection, triangles[closestIntersection.triangleIndex], triangles);
+				if (useReflect) {
+					vec3 bounceD = reflectD(d, triangles[closestIntersection.triangleIndex].normal);
+					Intersection closestIntersection2;
+					closestIntersection2.distance = maxFloat;
+					closestIntersection2.triangleIndex = -1;
+					if (ClosestIntersection2(closestIntersection.position + bounceD*vec3(0.00000002f, 0.00000002f, 0.00000002f), bounceD, triangles, closestIntersection2, closestIntersection)) {
+						if (usePhong) color2 = phongShading(closestIntersection2, triangles[closestIntersection2.triangleIndex], triangles);
+						else color2 = blingShadding(closestIntersection2, triangles[closestIntersection2.triangleIndex], triangles);
+					}
+				}
+			}
+			if (useReflect) finalColor = finalColor + color1 + color2*triangles[closestIntersection.triangleIndex].reflectance;
+			else finalColor = finalColor + color1;
+			if (useBlur) frameBuffer[y][x] = finalColor;
+			else PutPixelSDL(screen, x, y, finalColor);
+		}
+	}
+	if (useBlur) postBlur();
 
 	if (SDL_MUSTLOCK(screen))
 		SDL_UnlockSurface(screen);
