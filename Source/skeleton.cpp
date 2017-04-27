@@ -98,6 +98,10 @@ int main(int argc, char* argv[])
 	return 0;
 }
 
+vec3 reflectD(vec3 input, vec3 normal) {
+	return input - 2 * glm::dot(input, normal)*normal;
+}
+
 bool ClosestIntersection(vec3& start, vec3& dir, const vector<Triangle>& triangles, Intersection& closestIntersection)
 {
 	bool intersect = false;
@@ -108,13 +112,37 @@ bool ClosestIntersection(vec3& start, vec3& dir, const vector<Triangle>& triangl
 		vec3 e2 = triangle.v2 - triangle.v0;
 		vec3 p = glm::cross(dir, e2);
 		vec3 q = glm::cross(start - triangle.v0, e1);
-		vec3 x =(1/(glm::dot(p, e1)))* vec3(glm::dot(q,e2),glm::dot(p,start - triangle.v0), glm::dot(q,dir));
+		vec3 x = (1 / (glm::dot(p, e1)))* vec3(glm::dot(q, e2), glm::dot(p, start - triangle.v0), glm::dot(q, dir));
 		if (x.x < closestIntersection.distance) {
 			if (x.y >= 0.0f && x.z >= 0.0f && (x.y + x.z) <= 1.0f && x.x >= 0.0f) {
 				closestIntersection.distance = x.x;
 				closestIntersection.position = start + x.x*dir;
 				closestIntersection.triangleIndex = i;
 				intersect = true;
+			}
+		}
+	}
+	return intersect;
+}
+
+bool ClosestIntersection2(vec3& start, vec3& dir, const vector<Triangle>& triangles, Intersection& closestIntersection, Intersection previousI)
+{
+	bool intersect = false;
+	for (int i = 0; i<triangles.size(); i++) {
+		if (previousI.triangleIndex != i) {
+			Triangle triangle = triangles[i];
+			vec3 e1 = triangle.v1 - triangle.v0;
+			vec3 e2 = triangle.v2 - triangle.v0;
+			vec3 p = glm::cross(dir, e2);
+			vec3 q = glm::cross(start - triangle.v0, e1);
+			vec3 x = (1 / (glm::dot(p, e1)))* vec3(glm::dot(q, e2), glm::dot(p, start - triangle.v0), glm::dot(q, dir));
+			if (x.x < closestIntersection.distance) {
+				if (x.y >= 0.0f && x.z >= 0.0f && (x.y + x.z) <= 1.0f && x.x >= 0.0f) {
+					closestIntersection.distance = x.x;
+					closestIntersection.position = start + x.x*dir;
+					closestIntersection.triangleIndex = i;
+					intersect = true;
+				}
 			}
 		}
 	}
@@ -273,7 +301,8 @@ void Draw()
 			vec3 finalColor(0.0f, 0.0f, 0.0f);
 			for (float y2 = -0.5f; y2<0.5f; y2 += 0.5f) {
 				for (float x2 = -0.5f; x2<0.5f; x2 += 0.5f) {
-					vec3 color(0, 0, 0);
+					vec3 color1(0, 0, 0);
+					vec3 color2(0, 0, 0);
 					vec3 d(x + (x2)-SCREEN_WIDTH / 2.0f, y + (y2)-SCREEN_HEIGHT / 2.0f, focalLength);
 					d = R*d;
 
@@ -281,10 +310,19 @@ void Draw()
 					closestIntersection.distance = maxFloat;
 					closestIntersection.triangleIndex = -1;
 					if (ClosestIntersection(cameraPos, d, triangles, closestIntersection)) {
-						color = blingShadding(closestIntersection, triangles[closestIntersection.triangleIndex], triangles);
+						color1 = blingShadding(closestIntersection, triangles[closestIntersection.triangleIndex], triangles);
+						vec3 bounceD = reflectD(d, triangles[closestIntersection.triangleIndex].normal);
+						//vec3 newpos = closestIntersection.position - bounceD*vec3(0.002f, 0.002f, 0.002f);
+						Intersection closestIntersection2;
+						closestIntersection2.distance = maxFloat;
+						closestIntersection2.triangleIndex = -1;
+						if (ClosestIntersection2(closestIntersection.position + bounceD*vec3(0.00000002f, 0.00000002f, 0.00000002f), bounceD, triangles, closestIntersection2, closestIntersection)) {
+							color2 = blingShadding(closestIntersection2, triangles[closestIntersection2.triangleIndex], triangles);
+						}
+
 					}
 					if(x2 == 0.0f && y2 == 0.0f)maskBuffer[y][x] = closestIntersection.distance * 1000;
-					finalColor = finalColor + color;
+					finalColor = finalColor + color1 +color2*triangles[closestIntersection.triangleIndex].reflectance;
 				}
 			}
 

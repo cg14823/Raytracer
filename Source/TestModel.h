@@ -18,6 +18,7 @@ public:
 	glm::vec3 ambient;
 	glm::vec3 diffuse;
 	glm::vec3 specular;
+	float reflectance;
 
 	Triangle( glm::vec3 v0, glm::vec3 v1, glm::vec3 v2, glm::vec3 color )
 		: v0(v0), v1(v1), v2(v2), color(color)
@@ -28,8 +29,8 @@ public:
 		diffuse = glm::vec3(0.0f, 0.0f, 0.0f);
 	}
 
-	Triangle(glm::vec3 v0, glm::vec3 v1, glm::vec3 v2, glm::vec3 color, glm::vec3 ambient, glm::vec3 diffuse, glm::vec3 specular)
-	: v0(v0), v1(v1), v2(v2), color(color), ambient(ambient), diffuse(diffuse), specular(specular){
+	Triangle(glm::vec3 v0, glm::vec3 v1, glm::vec3 v2, glm::vec3 color, glm::vec3 ambient, glm::vec3 diffuse, glm::vec3 specular, float reflectance)
+	: v0(v0), v1(v1), v2(v2), color(color), ambient(ambient), diffuse(diffuse), specular(specular), reflectance(reflectance) {
 		ComputeNormal();
 	}
 
@@ -80,42 +81,43 @@ void LoadTestModel( std::vector<Triangle>& triangles )
 	vec3 tspecular = vec3(0.0f, 0.5f, 0.0f);
 	vec3 tdiffuse = vec3(0.1f, 0.5f, 0.1f);
 	vec3 tambient = vec3(0.1f, 0.5f, 0.1f);
+	float reflectance = 0.2f;
 
 	// Floor:
-	triangles.push_back( Triangle( C, B, A, green, tambient, tdiffuse, tspecular));
-	triangles.push_back( Triangle( C, D, B, green, tambient, tdiffuse, tspecular));
+	triangles.push_back( Triangle( C, B, A, green, tambient, tdiffuse, tspecular, 0.05f));
+	triangles.push_back( Triangle( C, D, B, green, tambient, tdiffuse, tspecular, 0.05f));
 
 	tspecular = vec3(0.4f, 0.0f, 0.4f);
 	tdiffuse = vec3(0.4f, 0.05f, 0.4f);
 	tambient = vec3(0.4f, 0.01f, 0.4f);
 
 	// Left wall
-	triangles.push_back( Triangle( A, E, C, purple, tambient, tdiffuse, tspecular) );
-	triangles.push_back( Triangle( C, E, G, purple, tambient, tdiffuse, tspecular) );
+	triangles.push_back( Triangle( A, E, C, purple, tambient, tdiffuse, tspecular, reflectance) );
+	triangles.push_back( Triangle( C, E, G, purple, tambient, tdiffuse, tspecular, reflectance) );
 
 	tspecular = vec3(0.4f, 0.4f, 0.0f);
 	tdiffuse = vec3(0.4f, 0.4f, 0.1f);
 	tambient = vec3(0.4f, 0.2f, 0.01f);
 
 	// Right wall
-	triangles.push_back( Triangle( F, B, D, yellow, tambient, tdiffuse, tspecular) );
-	triangles.push_back( Triangle( H, F, D, yellow, tambient, tdiffuse, tspecular) );
+	triangles.push_back( Triangle( F, B, D, yellow, tambient, tdiffuse, tspecular, reflectance) );
+	triangles.push_back( Triangle( H, F, D, yellow, tambient, tdiffuse, tspecular, reflectance) );
 
 	tspecular = vec3(0.0f, 0.4f, 0.4f);
 	tdiffuse = vec3(0.1f, 0.4f, 0.4f);
 	tambient = vec3(0.01f, 0.4f, 0.4f);
 
 	// Ceiling
-	triangles.push_back( Triangle( E, F, G, cyan, tambient, tdiffuse, tspecular) );
-	triangles.push_back( Triangle( F, H, G, cyan, tambient, tdiffuse, tspecular) );
+	triangles.push_back( Triangle( E, F, G, cyan, tambient, tdiffuse, tspecular, 0.0f) );
+	triangles.push_back( Triangle( F, H, G, cyan, tambient, tdiffuse, tspecular, 0.0f) );
 
 	tspecular = vec3(0.4f, 0.4f, 0.4f);
 	tdiffuse = vec3(0.3f, 0.3f, 0.3f);
 	tambient = vec3(0.3f, 0.3f, 0.3f);
 
 	// Back wall
-	triangles.push_back( Triangle( G, D, C, white, tambient, tdiffuse, tspecular) );
-	triangles.push_back( Triangle( G, H, D, white, tambient, tdiffuse, tspecular) );
+	triangles.push_back( Triangle( G, D, C, white, tambient, tdiffuse, tspecular, 0.0f) );
+	triangles.push_back( Triangle( G, H, D, white, tambient, tdiffuse, tspecular, 0.0f) );
 
 	// ---------------------------------------------------------------------------
 	// Short block
@@ -133,26 +135,28 @@ void LoadTestModel( std::vector<Triangle>& triangles )
 	tspecular = vec3(0.7f, 0.05f, 0.05f);
 	tdiffuse = vec3(0.7f, 0.1f, 0.1f);
 	tambient = vec3(0.5f, 0.1f, 0.1f);
+	reflectance = 0.01f;
+
 
 	// Front
-	triangles.push_back( Triangle(E,B,A,red, tambient, tdiffuse,tspecular) );
-	triangles.push_back( Triangle(E,F,B,red, tambient, tdiffuse, tspecular) );
+	triangles.push_back( Triangle(E,B,A,red, tambient, tdiffuse,tspecular, reflectance) );
+	triangles.push_back( Triangle(E,F,B,red, tambient, tdiffuse, tspecular, reflectance) );
 
 	// Front
-	triangles.push_back( Triangle(F,D,B,red, tambient, tdiffuse, tspecular) );
-	triangles.push_back( Triangle(F,H,D,red, tambient, tdiffuse, tspecular) );
+	triangles.push_back( Triangle(F,D,B,red, tambient, tdiffuse, tspecular, reflectance) );
+	triangles.push_back( Triangle(F,H,D,red, tambient, tdiffuse, tspecular, reflectance) );
 
 	// BACK
-	triangles.push_back( Triangle(H,C,D,red, tambient, tdiffuse, tspecular) );
-	triangles.push_back( Triangle(H,G,C,red, tambient, tdiffuse, tspecular) );
+	triangles.push_back( Triangle(H,C,D,red, tambient, tdiffuse, tspecular, reflectance) );
+	triangles.push_back( Triangle(H,G,C,red, tambient, tdiffuse, tspecular, reflectance) );
 
 	// LEFT
-	triangles.push_back( Triangle(G,E,C,red, tambient, tdiffuse, tspecular) );
-	triangles.push_back( Triangle(E,A,C,red, tambient, tdiffuse, tspecular) );
+	triangles.push_back( Triangle(G,E,C,red, tambient, tdiffuse, tspecular, reflectance) );
+	triangles.push_back( Triangle(E,A,C,red, tambient, tdiffuse, tspecular, reflectance) );
 
 	// TOP
-	triangles.push_back( Triangle(G,F,E,red, tambient, tdiffuse, tspecular) );
-	triangles.push_back( Triangle(G,H,F,red, tambient, tdiffuse, tspecular) );
+	triangles.push_back( Triangle(G,F,E,red, tambient, tdiffuse, tspecular, reflectance) );
+	triangles.push_back( Triangle(G,H,F,red, tambient, tdiffuse, tspecular, reflectance) );
 
 	// ---------------------------------------------------------------------------
 	// Tall block
@@ -172,24 +176,24 @@ void LoadTestModel( std::vector<Triangle>& triangles )
 	tambient = vec3(0.1f, 0.1f, 0.5f);
 
 	// Front
-	triangles.push_back( Triangle(E,B,A,blue, tambient, tdiffuse, tspecular));
-	triangles.push_back( Triangle(E,F,B,blue, tambient, tdiffuse, tspecular));
+	triangles.push_back( Triangle(E,B,A,blue, tambient, tdiffuse, tspecular, reflectance));
+	triangles.push_back( Triangle(E,F,B,blue, tambient, tdiffuse, tspecular, reflectance));
 
 	// Front
-	triangles.push_back( Triangle(F,D,B,blue, tambient, tdiffuse, tspecular));
-	triangles.push_back( Triangle(F,H,D,blue, tambient, tdiffuse, tspecular));
+	triangles.push_back( Triangle(F,D,B,blue, tambient, tdiffuse, tspecular, reflectance));
+	triangles.push_back( Triangle(F,H,D,blue, tambient, tdiffuse, tspecular, reflectance));
 
 	// BACK
-	triangles.push_back( Triangle(H,C,D,blue, tambient, tdiffuse, tspecular));
-	triangles.push_back( Triangle(H,G,C,blue, tambient, tdiffuse, tspecular));
+	triangles.push_back( Triangle(H,C,D,blue, tambient, tdiffuse, tspecular, reflectance));
+	triangles.push_back( Triangle(H,G,C,blue, tambient, tdiffuse, tspecular, reflectance));
 
 	// LEFT
-	triangles.push_back( Triangle(G,E,C,blue, tambient, tdiffuse, tspecular));
-	triangles.push_back( Triangle(E,A,C,blue, tambient, tdiffuse, tspecular));
+	triangles.push_back( Triangle(G,E,C,blue, tambient, tdiffuse, tspecular, reflectance));
+	triangles.push_back( Triangle(E,A,C,blue, tambient, tdiffuse, tspecular, reflectance));
 
 	// TOP
-	triangles.push_back( Triangle(G,F,E,blue, tambient, tdiffuse, tspecular));
-	triangles.push_back( Triangle(G,H,F,blue, tambient, tdiffuse, tspecular));
+	triangles.push_back( Triangle(G,F,E,blue, tambient, tdiffuse, tspecular, reflectance));
+	triangles.push_back( Triangle(G,H,F,blue, tambient, tdiffuse, tspecular, reflectance));
 
 
 	// ----------------------------------------------
